@@ -1994,3 +1994,5 @@ um Transfervolumen zu sparen
 Rsync bietet viele Optionen und lassen sich gut in Bash Scripte verwenden und anpassen
 Rsync können Sie auch lokal verwenden um z.B. Backups auf externe Geräte zu sichern
 Kann auch ACLs (-A) und SELinux Content (-X) synchronisieren
+
+rsync -a /boot/grub2 /backup/
