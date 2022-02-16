@@ -1,0 +1,1996 @@
+RHCSA
+
+#Hashwert des Downloads vergleichen
+
+#Windows:
+certutil -hashfile rhel-xyz.iso SHA256
+
+#Linux & macOS
+shasum -a 256 rhel-xyz.iso
+
+#Virtuelle Konsolen während der Installation (Ctrl+Alt+1, 2, 3, 4, 5, 6)
+
+Console 1 = Hauptfenster, Textnachrichten während der Text Mode Installation und debugging Informationen
+Console 2 = Bash Shell um Befehle als root auszuführen
+Console 3 = Zeigt Installations Nachrichten und Hardwareinformationen an und speichert diese in /tmp/anaconda.log
+Console 4 = Zeigt Speichernachrichten an - /tmp/storage.log
+Console 5 = Zeigt Programmnachrichten und Logs an - /tmp/program.log
+Console 6 = Standarf Grafische Oberfläche und Installationsbildschirm
+
+#Manuelle Partitionierung
+
+/ (rhel-root-partition) = 10GiB (xfs)  LVM
+/boot                   = 1GiB  (xfs)  KEIN LVM (kann auf LVM nicht booten)
+/home                   = 1GiB  (xfs)  LVM
+/swap                   = 1GiB  (swap) LVM (standard-partition ist auch möglich)
+
+#GUI installieren
+
+yum group install "Server with GUI" -y
+systemctl set-default graphical
+startx
+
+#Questions:
+Kann man RHEL8 im Textmodus noch installieren?
+Ja
+
+Auf wieviele Konsolen hat man während des Installationsvorgangs Zugang?
+6
+
+Man kann die /boot Partition innerhalb LVM verwenden um RHEL zu booten.
+Falsch
+
+Auf welcher kernel Version basiert die erste Version von RHEL 8?
+Kernel 4.x
+
+Wie heißen die zwei fast identischen Klone von Red Hat Enterprise Linux?
+CentOS und Scientific Linux
+
+Zahlreiche Logdateien werden im /tmp Verzeichnis während des Installationsvorgangs angelegt und aktualisiert. Wohin werden diese Dateien nach der Fertigstellung der Installation verschoben?
+/var/log
+
+Wie lautet der Name des RHEL-Installationsprogramms?
+anaconda
+
+#Virtuelle Konsolen
+
+STRG+ALT+F1 bis F6 (tty1 - tty6)
+
+Man kann die Anzahl der Konsolen auch verändern in /etc/systemd/logind.conf
+
+Mit "chvt 1-6" kann man die ttys wechseln, falls STRG+ALT+F1-F6 nicht funktioniert
+
+
+#Archivierung, Komprimierung, Finden und auszuführen
+
+dd if=/dev/zero of=10mb_datei bs=1024 count=10240
+du -ms 10mb_datei = Größe überprüfen
+
+gzip 10mb_datei = gezippt
+gunzip 10mb_datei = entpackt
+
+gzip -k(1-9 (CPU Leistung und Komprimierungsstärke)) 10mb_datei = entpacken und orig. behalten
+
+gzip -r /Downlods = verpackt nur den Inhalt der einzelnen Dateien im Ordner
+gzip -rd /Downlaods = entpacken
+
+
+#Benutzer Management
+
+useradd -D = Werte anzeigen lassen (Default Settings)
+/etc/default/useradd = Ort wo die Einstellungen sind
+/etc/login.defs = Konfigurationseinstellungen
+/etc/skel = Struktur für ein neues Home Verzeichnis
+Bearbeiten in der /etc/passwd mit vipw (vim password)
+
+#Alles was in der /etc/skel gespeichert wird, wird in das Home-Verzeichnis eines neu angelegten Benutzer kopiert!
+beim erstellen eines Users wird immer der Inhalt der Datei /etc/skel Komprimierungsstärke
+
+
+Jeder User muss mindestens einer Gruppe angehörig sein
+Gruppen werden in /etc/passwd, gshadow, group verwaltet
+Beim erstellen von Dateien werden immer die Primäre Gruppe des Users genommen welche in der /etc/passwd Datei ersichtlich ist
+Bearbeiten der /etc/group Datei mit vigr (steht für vim group)
+passwd = primäre Gruppenverwaltung
+group = sekundäre Gruppenverwaltung
+
+useradd peter
+
+usermod -aG wheel peter
+
+peter id
+cat /etc/passwd | grep peter
+man sieht, dass Peter nun auch die ID von wheel hat bzw. sich in dieser Gruppe befindet
+
+vigr = man löscht peter aus wheel heraus und nun befindet er sich nicht mehr in der Gruppen
+id peter = Beweis
+
+vigr -s = hier aus gshadow auch noch löschen
+
+passwd -S peter = Status abfragen
+
+passwd -i = Anzahl der inaktiven Tage bis zur Sperrung des Kennworts angeben
+
+passwd -l = Konto sperren (lock)
+passwd -u = Konto entsperren (unlock)
+passwd -d = Konto löschen
+passwd -k = abgelaufenes Kennwort reaktivieren
+
+echo "atix" |passwd peter --stdin = Passwort gesetzt
+
+chage -l peter = Informationen abfragen
+
+usermod -l peter2 peter = Peter in Peter2 umbenannt
+
+useradd peter -d /usr/peter -c "kommentar" -s /bin/bash -u 1200
+useradd peter -m -c "kommentar" -s /sbin/nologin -u 1300
+
+chage -m 5 -M 8888 -W 5 peter
+
+cat /etc/shadow = Überprüfung
+
+#Erweiterte Datei- und Ordner-Berechtigungen
+
+chmod 777 <datei> oder chown u+rwx,o+rwx,g+rwx
+
+#chgrp wird verwendet um Dateien und Ordnern eine Gruppe zuzuteilen
+chgrp root <datei>
+
+#chown wird verwendet um Dateien und Ordnern einem Benutzer zuzuteilen
+chown root <datei>
+
+chown dennis:dennis <datei> oder chgrp root:root <datei>
+
+
+#Netzwerk Management
+systemctl status NetworkManager
+nmcli = Informationen
+nmcli general = mehr Informationen
+nmcli radio wifi off/on = automatische WIFI Suche aktivieren/deaktivieren
+nmcli con show = verbundene Interfaces
+nmcli con edit eth0 = CLI von nmcli starten für die Konfigurationseinstellungen
+
+nmcli> print all
+nmcli> print ipv4
+nmcli> goto ipv4
+nmcli> set addresses 192.168.0.10/24
+nmcli> goto dns
+nmcli> set dns 1.1.1.1
+nmcli> remove addresses
+nmcli> save
+nmcli> activate
+
+ip route
+ip route del default via 192.168.0.1 = default route löschen
+ip route add default via 192.168.0.1 = default route hinzufügen
+
+nmcli dev status
+
+nmcli con add con-name ens160 ifname ens160 type ethernet = Damit wird das Interface angelegt
+nmcli con edit ens160
+goto ipv4
+set addresses 192.168.0.220/24
+set gateway 192.168.0.1
+set dns 1.1.1.1
+save
+activate
+
+#Software Pakete installieren und aktualisieren
+
+ISO einhängen
+mittels lsblk oder df -hT überprüfen
+
+mkdir /mnt
+mount /dev/sr0 /mnt
+ls /mnt = nun sieht man schon den Inhalt und die Repos der gemounteten ISO
+umount /mnt
+
+---------------------------------------------------------------------------
+dd if=//dev/sr0 of=/root/repo.iso bs=1M & = wir schicken den Job in den Hintergrund
+kill -SIGUSR1 2715  = Um den Fortschritt zu beobachten
+
+Nun ist die ISO auf der Festplatte lokal vorhanden
+
+mkdir /opt/repo
+vim /etc/fstab
+/root/repo.ISO  /opt/repo iso9660 defaults  0 0
+mount -a
+
+ls /opt/repo
+
+Für die Testzwecke alle bisherigen Repos deaktivieren
+
+cd /etc/yum.repos.d/redhat.repo = Alles von Enabled = 1 auf 0 setzen
+
+im Ordner /etc/yum.repos.d/local.repo = erstellen
+
+vim /etc/yum.repos.d/local.repo
+[rhel-local-appstream-rpms]
+name = Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs) LOCAL
+baseurl = file:///opt/repo/AppStream
+enabled = 1
+gpgcheck = 0
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+metadata_expire = 86400
+enabled_metadata = 0
+
+[rhel-local-baseos-rpms]
+name = Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs) BASEOS
+baseurl = file:///opt/repo/BaseOS
+enabled = 1
+gpgcheck = 0
+metadata_expire = 86400
+enabled_metadata = 0
+
+dnf repolist = ÜBERPRÜFUNG (die angelegten Repos tauchen nun auf)
+
+dnf search <paketname>
+dnf provide <paketname>
+dnf search </usr/bin/..>
+dnf install <paketname>
+dnf remove <paketname>
+dnf info <paketname>
+dnf list <paketname>
+dnf update
+dnf upgrade
+dnf list all
+dnf repolist all
+dnf config-manager --set-enabled <repositoryname>
+dnf config-manager --add-repo <reponame>
+dnf updateinfo list available
+dnf clean
+
+dnf config-manager --disable <reponame>
+dnf config-manager --enable <reponame>
+dnf config-manager --set-enabled <reponame>
+dnf config-manager --set-disable <reponame>
+dnf upgrade --security
+
+
+#Module
+dnf module list
+dnf module info <name>
+dnf module install <name>
+dnf module list --enabled
+dnf module list --installed
+dnf module list nodejs
+dnf module info nodejs
+dnf module info nodejs --profile
+dnf module list nodejs
+dnf module install nodejs:12
+dnf module install nodejs:12/development
+dnf module reset nodejs:12
+dnf module remove nodejs
+
+
+dnf history
+dnf history list all | grep mc
+dnf history info 9
+dnf history undo 9
+
+#Programmgruppen installieren mit DNF
+(Sammlungen von mehreren Paketen, welche ein System bereitstellen z.B. e-Mail Server)
+(Es gibt vorgefertigte Gruppen um die Komponenten bereitzustellen)
+
+dnf group summary
+dnf group list
+dnf group list hidden (zeigt versteckte Gruppen)
+dnf group info "Mail-Server"
+dnf group install "Mail-Server"
+dnf group install "Mail-Server" --with-optional (mit angezeigten Abhängigkeiten)
+
+#RPM Pakete abfragen und anwenden
+
+rpm -qa <paketname> = Liste über alle installierte Pakete
+rpm -ql (Liste über den Inhalt eines RPM Pakets)
+rpm -qc (Liste über die Konfiguration des RPM Pakets)
+rpm -qd (Liste über alle Dokumentationsdateien eines RPM Pakets)
+rpm -qR (Liste über die Abhängigkeiten)
+rpm -qf (Angewendet auf jede Datei, zeigt das dazugehörige Paket)
+rpm -qip (RPM abfragen)
+rpm -q --whatrequires
+rpm -q --whatprovides
+rpm qi zip = Informationen
+
+#RPM installieren, löschen und extrahieren
+
+rpm -i = installieren
+rpm -F = bestehendes Paket upgraden
+rpm -U = upgraded oder installiert ein Paket falls nicht vorhanden
+--force = installiert wenn schon installiert
+--replacepkgs = überschreibt existierendes Paket
+rpm -h = zeigt Fortschritt an
+rpm -v = zeit Details während Installation an
+rpm -e = löscht ein paket
+--import = importiert einen Public-KEY
+rpm -K = überprüft Signatur und Integrität eines Pakets
+rpm -Vf = überprüft die Integrität einer installierenden Datei
+rpm -Vv = überprüft die Inegrität aller installierten DAteien
+
+rpm -ivh = Paket inkl.Details und Fortschrittbalken installieren
+rpm -e <paket> = paket löschen
+rpm Uvh = Upgrade inkl. installation falls nicht vorhanden
+rpm -Fvh = Upgrade funktioniert nur falls das Paket schon vorhanden bzw. installiert ist
+rpm -qlp = Inhalt anzeigen des rpm Pakets
+rpm2cpio <paketname> |cpio -id
+
+#RPM Pakete auf Inegrität und GPG Keys überprüfen
+
+rpm -K --nosignature <paket.rpm>
+rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat release
+
+um die Signatur überprüfen zu können benötigen wir den GPG-KEY
+
+rpm -q gpg-pubkey = pub-key von gpg-key abfragen
+rpm -qi <gpg-key>
+ls -la /etc/audit/audit.rules
+rpm -Vf /etc/audit/audit.rules = keine Ausgabe, da die Integrität stimmt
+chown dennis:dennis /etc/audit/audit.rules
+rpm -Vf /etc/audit/audit.rules = nun die Ausgabe, dass etwas nicht mehr stimmt
+
+#verdächtige RPM überprüfen
+rpm -qp --scripts python36-
+
+#Die Paket-Datenbank befindet sich im /var/lib/rpm Verzeichnis
+
+[root@dennis ~]# rpm -qf /bin/bash
+bash-4.4.20-1.el8_4.x86_64
+
+#Wiederkehrende Aufgaben - Cronjobs
+
+* Minute (0-59)
+* Stunde (0-23)
+* Tag (1-31)
+* Monat (1-12)
+* Wochentag (0-7, Sonntag is 0 oder 7)
+
+0 5 * * 1,4 /bin/bash/backup.sh # Mo,Do um 5 Uhr in der Früh wird das Backup ausgeführt
+
+# System Cronjobs werden gespeichert in /etc/cron*
+# Benutzer Cronjobs werden gespeichert in /var/spool/cron/
+# Zugriff der Benutzer beschränken mit /etc/cron.allow und /etc/cron.deny
+  # Wenn die Datei /etc/cron.allow vorhanden ist, müssen Benutzer die Cron verwenden wollen
+    eingetragen werden. Standardmäßig gibt es diese Datei nicht und alle dürfen cron verwenden,
+    mit Ausnahme von Benutzern die in cron.deny eingetragen sind.
+
+# Wenn beide Dateien vorhanden sind, hat /etc/cron.allow Vorrang und deny wird nicht
+berücksichtigt. Der Benutzer muss in cron.allow sein um crontab benutzen zu dürfen
+
+#man crontab /  man 5 crontab
+
+
+crontab -l = listet alle eingetragenen cronjobs auf
+crontab -l -u student = benutzer spezifische Abfrage
+
+
+[root@dennis ~]# cat /etc/crontab
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=root
+
+# For details see man 4 crontabs
+
+# Example of job definition:
+# .---------------- minute (0 - 59)
+# |  .------------- hour (0 - 23)
+# |  |  .---------- day of month (1 - 31)
+# |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+# |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+# |  |  |  |  |
+# *  *  *  *  * user-name  command to be executed
+
+
+crontab -e = cronjob Bearbeiten
+
+tail /var/log/cron = log
+
+journalctl -u crond.service = log
+
+export EDITOR=nano = bei crontab -e wird nun automatisch nano statt vim geöffnet
+
+man k -crontab
+
+crontab -r = cronjob bzw. crontab löschen
+
+#verstehen von anacron = ausgelegt für systeme welche nicht dauerhaft laufen
+anacron versteht beim systemstart, dass der job fehlt bzw. nicht ausgeführt wurde und holt dies nach
+(arbeitet mit Zeitstempel)
+bei cronjobs hingegen wird der job nicht ausgeführt zu der Zeit als der Rechner aus ist udn auch nicht nachgeholt
+anacron zu finden in /etc/anacrontab
+
+[root@dennis ~]# cat /etc/anacrontab
+# /etc/anacrontab: configuration file for anacron
+
+# See anacron(8) and anacrontab(5) for details.
+
+SHELL=/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=root
+# the maximal random delay added to the base delay of the jobs
+RANDOM_DELAY=45
+# the jobs will be started during the following hours only
+START_HOURS_RANGE=3-22
+
+#period in days   delay in minutes   job-identifier   command
+1	5	cron.daily		nice run-parts /etc/cron.daily
+7	25	cron.weekly		nice run-parts /etc/cron.weekly
+@monthly 45	cron.monthly		nice run-parts /etc/cron.monthly
+
+ls /var/spool/anacron
+
+#einmalig geplante Aufgaben mit AT
+
+
+systemctl status atd crond = Status Abfrage
+
+at -l = job auflisten
+
+
+#SystemD Timers
+
+OnBootSec=5min = erste Ausführung 5 Minuten nach Beginn des Bootvorgangs
+OnUnitActiveSec=10min = weitere Ausführungen jeweils nach 10 Minuten
+
+systemctl list-unit-files --type=timer
+systemctl list-timers
+
+root@dennis lib]# systemctl cat dnf-makecache.timer
+# /usr/lib/systemd/system/dnf-makecache.timer
+[Unit]
+Description=dnf makecache --timer
+ConditionKernelCommandLine=!rd.live.image
+# See comment in dnf-makecache.service
+ConditionPathExists=!/run/ostree-booted
+Wants=network-online.target
+
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=1h
+RandomizedDelaySec=60m
+Unit=dnf-makecache.service
+
+[Install]
+WantedBy=timers.target
+
+[root@dennis lib]# systemctl status dnf-makechace.service
+Unit dnf-makechace.service could not be found.
+[root@dennis lib]# systemctl status dnf-makecache.service
+● dnf-makecache.service - dnf makecache
+   Loaded: loaded (/usr/lib/systemd/system/dnf-makecache.service; static; vendor preset: disabled)
+   Active: inactive (dead) since Sat 2022-01-08 10:26:27 CET; 34min ago
+  Process: 402958 ExecStart=/usr/bin/dnf makecache --timer (code=exited, status=0/SUCCESS)
+ Main PID: 402958 (code=exited, status=0/SUCCESS)
+
+Jan 08 10:26:24 dennis.rhel systemd[1]: Starting dnf makecache...
+Jan 08 10:26:25 dennis.rhel dnf[402958]: Updating Subscription Management repositories.
+Jan 08 10:26:27 dennis.rhel dnf[402958]: Metadata cache refreshed recently.
+Jan 08 10:26:27 dennis.rhel systemd[1]: dnf-makecache.service: Succeeded.
+Jan 08 10:26:27 dennis.rhel systemd[1]: Started dnf makecache.
+
+[root@dennis lib]# systemd-run --on-calendar '*:0/1' /bin/sh -c "date >> /root/log.txt"
+Running timer as unit: run-rceeae505fc684e2da5755e64510a872f.timer
+Will run service as unit: run-rceeae505fc684e2da5755e64510a872f.service
+
+[root@dennis ~]# systemctl status run-rceeae505fc684e2da5755e64510a872f.service
+● run-rceeae505fc684e2da5755e64510a872f.service - /bin/sh -c date >> /root/log.txt
+   Loaded: loaded (/run/systemd/transient/run-rceeae505fc684e2da5755e64510a872f.service; transient)
+Transient: yes
+   Active: inactive (dead) since Sat 2022-01-08 11:04:02 CET; 55s ago
+  Process: 405227 ExecStart=/bin/sh -c date >> /root/log.txt (code=exited, status=0/SUCCESS)
+ Main PID: 405227 (code=exited, status=0/SUCCESS)
+
+Jan 08 11:04:01 dennis.rhel systemd[1]: Started /bin/sh -c date >> /root/log.txt.
+Jan 08 11:04:02 dennis.rhel systemd[1]: run-rceeae505fc684e2da5755e64510a872f.service: Succeeded.
+
+systemd-run --on-calendar '*:0/1' --user /bin/sh -c "date >> /root/log.txt"
+cd /run/user/0/systemd/transient/
+cat run-*
+
+systemctl deamon-reload
+
+systemd-run --on-calendar="2022-01-9 11:16" /bin/sh/ -c "echo 1 >> /root/echo.txt"
+
+#Kontrolldienste und Daemons (SystemD)
+
+systemctl |less = zeigt die aktiven units an (bessere Übersicht)
+systemctl --all = alle Prozesse auch inactive und dead
+
+dnf module list
+dnf module install nginx
+
+
+curl http://localhost = funktioniert nicht
+systemctl status nginx = ist nicht aktiv deshalb funktioniert kein curl
+systemctl start nginx
+nun funktioniert auch der curl aufruf
+
+systemctl enable nginx = nginx startet automatisch, wird durch symlink realisiert
+systemctl restart/reload = nach konfig änderung neustarten
+systemctl reload-or-restart = reload ist besser um verbindungen aktiv zu halten falls er nicht funktioniert dann restart
+systemctl is-active
+
+systemctl is-active
+systemctl is-active sshd
+systemctl is-enabled sshd
+systemctl is-failed nginx
+
+/usr/lib/systemd/system = Hier liegen vordefinierte SystemD Dateien (nicht editieren)
+/etc/systemd/system = Der Platz für selbst angelegte Unit-Dateien
+/run/systemd/system = Für die Laufzeit relevante Units finden sich hier
+
+Wenn eine bestehende Unit mit dem editor bearbeitet wird, kopiert man diese zuerst in /etc/systemd/system -->
+denn SystemD liest zuerst /etc danach /run und zum Schluss /lib ein
+
+Alternative zum bearbeiten mit der "systemctl edit --full" Funktion
+
+systemd-delta = zeigt an welche KOnfigurationsdateien überschrieben bzw. bearbeitet worden sind
+
+#Unit Types
+
+.service = Diense starten überwachen und stoppen
+.device = Gerätedateien anlegen
+.mount = Ein und Aushängen von Mountpoints
+.automount = auomatisches einhängen
+.target = Gruppe von Units definieren
+.timer = wiederkehrende Aufgaben (ähnlich cron)
+.socket = Verbindungen zwischen Prozessen herstellen
+.network = Netzwerke konfigurieren
+.path = Service-Units abhängig von Änderungen ausführen
+
+systemctl cat nginx = Zeigt die Konfigurationsdatei auf von /etc/systemd/system/nginx
+systemctl show nginx = Zeigt alle Konfigurationsparameter an
+
+systemctl edit --full nginx = mit dem Befehl wird die Datei von /usr/lib/ in /etc/systemd/system/ kopiert und bearbeitet
+
+for i in $(ps ax | grep nginx |awk '{print $1}'); do kill -9 echo $i; done
+
+nano /etc/systemd/system/nginx.service = dort tragen wir Restart=always ein
+und starten dem daemon mit "systemctl daemon-reload" neu
+nun müssen wir mit systemctl start nginx neu neustarten
+ps ax |grep nginx
+wir killen die master PID
+und wenn wir ps ax | grep nginx eintippen sieht man es werden alle worker bzw. services sofort neu gestartet
+
+systemctl -t socket
+systemctl -t mount
+
+
+systemctl list-unit-files
+systemd-delta = Zeigt uns nun die Änderungen der Konfig Datei auf
+
+
+#SystemD Targets
+
+systemctl get-default = anzeigen in welchem Target wir uns befinden
+systemctl set-default multi-user.target = Runlevel 3 ohne GUI wird gesetzt
+systemctl isolate graphical.target = wechselt einmalig auf ein neues target zb ins graphical target - runlevel 5
+systemctl halt = fährt das system herunter und haltet es an
+systemctl poweroff = fährt das system herunter und schaltet es aus
+systemctl reboot = das system wird neugestartet
+systemctl hybrid-sleep = das system fährt in einen Tiefschlaf
+
+#Der Shutdown Befehl sendet eine Broadcast Message um alle Nutzer welche am system angemeldet sind eine Nachricht zu hinterlassen
+shutdown -r now = fährt das system sofort herunter und startet neu
+shutdown -h 5 = fährt nach 5 Minuten das system herunter und schaltet sich aus
+shutdown -H 10 = fährt nach 10 minuten das system herunter und in den Halt Status
+
+cd /etc/systemd/system
+ls multi-user.target.wants/
+systemctl list-dependencies multi-user.target
+
+systemctl set-default graphical.target
+
+ls /lib/systemd/system/*.target = zeigt auch noch einmal die Targets an
+
+[root@rhel system]# ls -la runle*
+lrwxrwxrwx. 1 root root 15 Dec 10 10:31 runlevel0.target -> poweroff.target
+lrwxrwxrwx. 1 root root 13 Dec 10 10:31 runlevel1.target -> rescue.target
+lrwxrwxrwx. 1 root root 17 Dec 10 10:31 runlevel2.target -> multi-user.target
+lrwxrwxrwx. 1 root root 17 Dec 10 10:31 runlevel3.target -> multi-user.target
+lrwxrwxrwx. 1 root root 17 Dec 10 10:31 runlevel4.target -> multi-user.target
+lrwxrwxrwx. 1 root root 16 Dec 10 10:31 runlevel5.target -> graphical.target
+lrwxrwxrwx. 1 root root 13 Dec 10 10:31 runlevel6.target -> reboot.target
+
+
+systemctl edit --full multi-user.target
+
+systemd-analyze
+systemd-analyze blame
+
+systemd-cgls / systemctl status
+systemd-cgtop
+systemctl show paketname (z.B. nginx)
+systemctl set-property
+
+systemctl set-property nginx.service MemoryLimit=1G
+systemctl set-property nginx.service MemoryAccounting=1
+[root@rhel ~]# systemctl set-property nginx.service AllowedCPUs=1
+
+systemctl show sshd
+systemctl set-property sshd Description="open ssh service daemon"
+
+systemctl show nginx | grep Memory
+
+man systemd-resource-control
+
+
+[root@rhel multi-user.target.wants]# systemctl mask poweroff.target
+Created symlink /etc/systemd/system/poweroff.target → /dev/null.
+
+Bedeutet dass dieser Zustand nicht mehr ausgeführt wird
+shutdown = passiert nichts
+shutdown -h now = passiert nichts
+
+systemctl unmask poweroff.target = nun würde der shutdown Befehl wieder funktionieren
+
+#SystemD Logging mit JournalD
+
+wird in /var/run geschrieben
+/var/run existiert nur im aktuellen Ram und ist nicht persistend
+Journal ist strukturiert und indexiert
+Suchen im Journal ist rasend schnell
+Kann als persistend konfiguriert werden
+
+journalctl --since yesterday
+journalctl --since "2020-12-01 10:00" --until "2020-12-01 12:00"
+
+journalctl /sbin/sshd = zeigt das jorunal für sshd
+
+systemctl start nginx
+journalctl -u nginx
+nun sieht man, dass nginx gestartet worden ist
+
+journalctl --list-boots
+journalctl -k = Kernel-Nachrichten
+
+#Hiermit macht man das journal persistent also dauerhaft
+mkdir -p /var/log/journal
+systemctl restart systemd-journald
+ls /var/log/journal
+
+#Überwachung und Verwaltung von Linux-Prozessen und Aufgaben
+
+
+tail -f /var/log/messages = Neuerungen (Liveüberwachung)
+
+tail -f /var/log/messages & = In den Hintergrund schicken
+
+
+jobs = zeigt alle Jobs im Hintergrund
+fg inkl. ausgegebener NUmmer des jobs Befehl, holt den Job wieder in den VOrdergrund
+
+Für MySql-Dumps mit hohen Datensätzen macht es Sinn diese in den Hintergrund zu schicken
+
+ps ax |grep tail = PID = 81325
+kill -9 81325
+
+
+ps = zeigt eine Liste aller laufenden Prozesse des aktuellen Benutzers an
+ps aux = zeigt eine Liste aller Prozesse mit Details zu allen Benutzern an
+ps fax = zeigt Prozesse in hierarchischer Folge mit der Zugehörigkeit an
+ps -fU <user> = Zeigt alle Prozesse eines bestimmten  Benutzers an
+ps L = Liste aller Formatierungen
+ps -eo user,pid,cmd  = Lässt sich anhand der liste "ps L" ein eigenes Layout zusammenstellen
+
+Je kleiner die PID desto früher wurde der Prozess neugestartet
+PID NR1 ist  das systemd
+Prozesse innerhalb von [] sind Kernel Prozessen
+
+
+D = Deep sleeping
+R = Running
+I = Idle
+T = Traced
+Z = Zombie
+W = Swap-Speicher ausgelagert
+< = höhere Priorität
+N = niedrigere Priorität
+L = Locked
+
+ps -ep user,pid,tty,cmd = eigenes Layout
+
+
+cd /proc/1099
+ls = Hier liegen die Informationen für die PID
+
+cd /run/ = Hier liegen Prozesse mit fest zugeteiler PID (nützlich für Bash-scripte)
+
+cat /run/sssd.PID
+ps aux|grep 970
+
+
+free -m = Ram/Swap speicher etc.
+
+#SWAPINESS
+
+
+cat /proc/sys/vm/swapiness
+sysctl -w vm.swapiness=30
+Permanent: Öffnen Sie /etc/sysctl.conf und setzen vm.swapiness=30
+reboot nötig
+Wert zwischen 30 und 100. Standart 30 oder 60. Bei 100 wird alles in den SWAP ausgelabert und unter 10 kann es zu abstürzen ausführen
+
+
+Viel RAM und langsame Festplatte = Niedriege Swapiness 10-30
+Viel RAM und schnelle SSD  = Hoher Swapiness 80-90
+Wenig Ram und Heim PC = Niedriege Swapiness 10-30 für bessere Reatkionsgeschwindkeit auf ANwendungen
+
+
+#CPU Auslastunge unter Linux
+
+uptime
+w
+top
+
+yes >> /dev/null = man sendet ununterbrochen einen yes Befehl welcher die load-average erhöht
+
+mit "w" können wir überprüfen das es wirklich so install
+
+mit kill -9 beenden wir die gestarteteten "yes" Prozesse
+
+killall -9 yes = beendet alle "yes" Prozesse
+
+Im top kann man kill <pid> eintippen
+
+top -c = vollständige Kommando inkl. Pfadangabe
+top -d = Wiederholrate in Sekunden
+top -b = startet top im Batch Modus
+
+
+#Prioritäten
+
+Standard ist 0
+
+Bereich -20 bis +19
+
+-20 hat die höchste Priorität (meiste CPU Leistung)
+19 hat die niedrigste Priorität (geringste CPU Leistung)
+
+Normale Nutzer können die Prioritäten von 0 bis 19 geben
+nur Root Benutzer können mehr
+
+
+nice = 0
+
+nice -n 19 top = top läuft mit der geringsten Priorität
+nice -n -20 top = top läuft mit höchster Priorität
+
+nice (ohne Angabe wird 10 genommen)
+
+renice -10 PID
+
+#Signale verstehen und anwenden
+
+
+kill,killall,pkill
+
+Strg+Z = -SIGSTOP = Programm im Hintergrund stoppen bzw. pausieren
+
+-SIGTERM beendet den Prozess sauber wird empfohlen
+
+kill -l = zeigt alle Signalbefehle auf
+
+kill 1 SIGHUP = Ende-Beenden der Terminalverbindung
+kill 2 SIGINT = Ende-Unterbrechen der Terminalverbindung z.B. Strg+C
+kill 3 SIGQUIT = Dump&Ende- Unterbrechen der Terminalverbindung und debuggen
+kill 9 SIGKILL = Dump&Ende- Sendet Abbruch und debuggen durch den Kernel
+kill 10 SIGUSR1 = Status von dd abfragen (kill -SIGUSR1 PID)
+kill 15 SIGTERM = Ende-Standarf bei allen kill Programmen: Abschließen und Beenden
+kill 18 SIGCONT = Restart
+kill 19 SIGSTOP = Anhalten
+
+yes >> /dev/null
+!yes
+pkill yes
+pgrep yes -l -a (Informationen wie name und PID)
+
+pkill -HUP syslogd
+pgrep -uroot -l
+
+#Profilbasiertes Tuning
+
+tuned = Service für Systemkomponenten überwacht Systemeinstellungen dynamisch anhand der Aktivitäten
+        überwacht CPU,HDD, Netzwerke
+        Kann die I/O Rate der Festplatten, Netzwerkgeräte oder Geschwindigkeit der CPU verändern und energiesparender arbeiten
+
+
+Vordefinierte Profile von RedHat für Laptop/Desktop (balanced), Storage /rhs-high-troughput) KVM
+
+tuned-admin list  = Zeigt eine Liste aller profile
+tuned-adm profile <neuerprofilname> = Setzt das neue Profil
+tuned-adm active = zeigt das aktuelle Profil an
+
+systemctl status tuned
+
+[root@rhel ~]# tuned-adm active
+Current active profile: virtual-guest
+
+tuned-adm list
+
+tuned-adm profile balanced
+
+#Logging und Protokolle
+
+syslog = veraltet
+JournalD = ist schneller und stellt Daten für Rsyslog und syslog-ng zur Verfügung
+syslog-ng = Weiterentwicklung von Syslog mit dem Ziel bekannte Schwachstellen zu beheben und mit bezahlter Enterprise Funktion
+
+Rsyslog und JournalD für Linux Standardmäßig installiert
+
+JournalD sammelt alle möglichen Daten die von SystemD verwaltet werden an einem Platz
+Alles wird im RAM gespeichert bis zum reboot ausser man stellt journalctl auf persistent um
+
+Log Speicherung erfolgt in /dev/log bzw. /var/log/journal (persistent falls man dieses Verzeichnis anlegt)
+
+Verwendet keine Logrotation, es wird archiviert
+
+nano /etc/systemd/journald.conf = zum Bearbeiten der Config, Speichergröße etc.
+#Storage=auto (dann kann das JournalD persistent gemacht werden indem das Verzeichnis erstellt wird)
+
+systemctl list-sockets = hier stehen die journal sockets bzw. speicherorte (dev-log, socket, stdout)
+
+journalctl
+journalctl -r = reverse
+
+journalctl -n 20 = die letzten 20 Einträge anzeigen
+journalctl -f = Liveüberwachung
+journalctl -b = Prozesse des letzten Boot-Prozesses
+journalctl -b -1 = letzter boot prozess -2 wäre vorletzter aber dazu müsste zuvor persistent logging eingerichtet werden
+journalctl -k = Kernel loggings
+journalctl -u nginx = Einträge von nginx
+journalctl -p error = error messages anzeigen
+journalctl --since today
+journalctl --since yesterday
+journalctl --sine 2020-04-30 --unit 2020-04-10
+
+journalctl <Tab drücken>
+dann kann z.B. _UID 0 ausgewählt werden
+
+journalctl _HOSTNAME=<name>
+
+journalctl -o verbose -u nginx
+
+journalctl -u nginx -o json = den output im json format
+journalctl -u nginx -o json-pretty = mehrzeiler
+
+systemctl status systemd-journald = Systemstatus abfragen
+
+journalctl --disk-usage = belegten Speicherplatz angezeigen
+
+journalctl --vacuum-size=500M = komprimieren auf 500MB
+
+
+Storage Wert kann persistent, volatil oder auto angegeben (volatil nicht persisten in /run/log/journal) Wenn der auto Modus angegeben ist, erkennt er
+falls der Ordner angelegt wird um auf persistent umzuschwenken
+
+Um Journald persistent zu machen muss der Ordner /var/log/journal erstellt werden
+systemctl restart systemd-journald = um die Änderung aktiv zu schalten
+Optional können TMP Dateien angelegt werden
+
+mkdir -p /var/log/journal
+systemd-tmpfiles --create --prefix /var/log/journal
+systemctl restart systemd-journald
+
+nano /etc/systemd/journald.conf = config
+
+#Rsyslog im Detail
+
+Rsyslog ist mit alten syslog kompatibel
+
+Nachrichten welche von JournalD gesammelt werden stehen auch Rsyslog zur Verfügung
+Bezieht die Daten aus Quellen wie z.B. JorunalD, Socket, UDP, TCP, Kernel-Logs, Dateien, Windows Event-Logs
+
+
+/etc/rsyslog.conf oder /etc/rsyslog.d
+Log Dateien werden in /var/log geschrieben
+
+mit dem Befehel "logger" können Nachrichten manuell an rsyslog gesendet werden
+
+nano /etc/rsyslog.conf = dort können z.B. .error Logs auf /var/log umgeleitet bzw. angegeben werden
+
+#Logrotation
+
+Wird von Rsyslog verwendet um Dateien zu komprimieren und archivieren
+Stellt fest, dass die Dateien nciht zu groß werden und sich von selbst löschen
+
+ls /etc/cron.daily
+nano /etc/cron.daily/logrotate
+
+hier liegt ein logrotate-shell script
+
+in /var/log/ liegen mehrere boot.log-20202002 mit Datum Dateien
+
+nano /etc/logrotate = Konfig Datei
+
+nano /etc/logrotate.d/nginx = nginx konfig zum bearbeiten
+
+#Festplattenverwaltung
+
+#Namensgebung der Festplatten auf unterschiedlichen Schnittstellen
+
+/dev/fdX = Diskettenlaufwerk
+/dev/hdaX (hda1) IDE/PATA Schnittstelle
+(hdd)
+/dev/sdaX (sda1) - SCSI oder SATA Schnittstelle
+/dev/vdaX (vda1) - Virtuelles Gerät  VirtIO Treiber
+/dev/nvmeXnXpX (nvme0n101) - NVME Schnittstelle
+nvme0 - Erster registrierter Schnittstellencontroller
+nvme0n1 - Erstes registriertes Gerät
+nvme0n1p1 - Erste Partition
+
+nvme0n1     259:0    0   30G  0 disk
+├─nvme0n1p1 259:1    0  300M  0 part /boot
+├─nvme0n1p2 259:2    0    3G  0 part [SWAP]
+└─nvme0n1p3 259:3    0 26.7G  0 part /
+
+ls -l /dev/*
+
+parted /dev/sda
+p = Informationen abrufen (Partition-Table)
+
+
+#Festplattenmanagement
+
+1. Klassische Partitionierung
+2. LVM - Logical Volume Manager
+   Standard in RHEL
+   Bietet mehr Flexibilität wie Snapshots und Größenänderungen
+3. Stratis
+   Zukünftiger Volume Manager für RedHat (noch neu)
+   ZFS/BTRFS Features (Devicemapper, Nur als XFS Format, Pools, Snapshots, Thin Provisioning)
+   Stratis Dämon läuft im Userspace, ermöglicht API Zugriff was die Entwicklung vereinfacht
+   Multi-Tiered Storage Pool, Pool Monitoring, Rollback
+
+   (Thin Provisioning bedeutet wenn 1TB physisch vorhanden bzw, zugeteilt ist belegt man nicht komplett 1TB sondern nur das was gerade tatsächlich belegt ist)
+
+4. VDO
+   Ideal bei Backups oder Virtualisierungscluster
+   Deduplikation und Kompression
+   (für viele Backups mit den selben Daten geeignet)
+
+5. BTRFS
+   Wurde von RedHat ersetzt durch Stratis. Fedora setzt weiterhin auf BTRFS
+
+
+#MBR vs. GPT
+
+MBR = Master Boot Record
+Sitzt im ersten Sektor der Festplatte um max. 512 bytes Boot-Informationen zu speichern
+Nur 64 Bytes stehen für die Partitionstabelle zur Verfügung
+Basiert auf 32 bit Partitionierung mit einer 512b Datenblock Limitierung
+Maximal 4 Partiionen mit nur max 2 TiB Kapazität
+Möglichkeit der erweiterten und logischen Partitionen nach 4 Partitionen
+Keine Redundanz der Partitionstabelle
+
+GPT = GUID/GPT
+64 bit Partitionierung, Platz für 128 Partitionen ohne Größenlimitierung
+Protective MBR wird im ersten Sektor geschrieben zwecks Abwärtskompatibilität
+Redundanz der Partitionstabelle durch automatisches Backup
+
+MBR
+fdisk
+
+GTP
+gdisk
+
+MBR und GPT
+parted
+cfdisk (grafisch)
+
+#Erstellen einer Partition mit "parted"
+
+Nachdem erstellen einer Partition muss noch die Formatierung vorgenommen werden
+parted schreibt ein Dateisystem Attribut in die Metadaten, diese können ignoriert werden
+Partitionstabelle muss zuerst gesetzt werden auf neue Laufwerke (mklabel gpt  / mklabel msdos für mbr)
+Gerätenamen neu einlesen mit udevadm settle (GPT)
+partprobe - um den Kernel zu informieren, dass eine neue Partitionstabelle erstellt wurde.
+Alternative zum neu-einlesen der Partitionstabelle wäre neustarten.
+
+cat /proc/partitions
+lsblk
+blkid
+(zur Überprüfung ob alles vom Kernel eingelesen wurde)
+
+
+#MBR
+
+1. lsblk
+2. parted /dev/sda
+3. print
+4. mklabel msdos
+5. print (nun sieht man aus GTP ist msdos bzw. MBR geworden)
+6. mkpart
+7. primary = primary or extended
+8. xfs = Filesystemtype
+9. 1 = Start
+10. 1g = Ende
+11. print
+
+(parted) print
+Model: ATA VMware Virtual S (scsi)
+Disk /dev/sda: 5369MB
+Sector size (logical/physical): 512B/512B
+Partition Table: msdos
+Disk Flags:
+
+Number  Start   End     Size   Type     File system  Flags
+ 1      1049kB  1000MB  999MB  primary  xfs          lba
+
+12. quit
+13. cat /proc/partitions = nun sieht man es gibt die Partition sda1
+14. partprobe
+15. udevadm settle = um Änderungen an der UID neu einzulesen
+
+#GPT
+
+1. parted /dev/sdb
+2. mklabel gpt
+3. print
+4. mkpart
+5. Partition Name = z.B. First
+6. FileSystemType = xfs
+7. Start = 1
+8. End = 1000MiB
+9. p
+
+(parted) mkpart
+Partition name?  []? First
+File system type?  [ext2]? xfs
+Start? 1
+End? 1000MiB
+(parted) p
+Model: ATA VMware Virtual S (scsi)
+Disk /dev/sdb: 5369MB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags:
+
+Number  Start   End     Size    File system  Name   Flags
+ 1      1049kB  1049MB  1048MB  xfs          First
+
+10. quit
+11. partprobe
+13. udevadm settle
+
+#Erstellen und löschen von Partitionen mit gdisk
+
+gdisk -l /dev/sda = z.B. MBR only
+gdisk -l /dev/sdb = z.B. GPT present / MBR protective ist bei GPT immer da, das ist für die Abwärtskompatibilität
+
+1. gdisk /dev/sdc
+2. o = delete all partitions and creates a new protective MBR
+3. p
+4. n = new partition
+5. Enter
+6. Enter
+7. +500M
+8. L
+9. 8300
+10. p
+11. gdisk -l /dev/sdc
+12. partprobe
+13. udevatm settle
+
+#Partition löschen
+1. gdisk /dev/sdc
+2. print
+3. d
+4. w
+5. partprobe
+6. udevadm settle
+7. cat /proc/partitions = Überprüfung
+
+#Erstellen einer Partition mit fdisk (MBR)
+
+1. fdisk /dev/sdc
+2. n = neue Partition
+3. p = primär
+4. partiton number = 1
+5. First Sector = Enter
+6. +200M
+7. p
+
+#Löschen der Partitonen
+
+fdisk /dev/sdc
+d = delete
+enter
+w
+parprobe
+
+
+#Dateisysteme in RHEL
+
+XFS
+  Standardformat in RHEL ist xfs
+  Kann vergrößert aber nicht verkleinert werden
+  Verzögertes Journaling und Copy on Write um Datenintegrität zu gewährleisten
+  Keine Dateimengenbegrenzung, ideal für Große Dateien (bis 8 Exbibyte)
+  Deduplizierung mit Reflinks
+
+
+Ext4
+  Bis RHEL6 war ext4 Standard
+  ext4 kann vergrößert und verkleinert werden
+  ext4 ist Journal basierend um Dateiintegrität zu gewährleisten
+  Abwärtskompatibel zu ext2
+
+ZFS und BTRFS im Gespräch aber es wird auf xfs gesetzt
+
+
+#Partition formatieren und einhängen
+
+mkfs<Tab>
+(Auswahl aller mkfs.<> Befehle erscheint)
+
+1. mkfs.xfs /dev/sda1
+2. mount /dev/sd1 /mnt
+3. df -h
+/dev/sda1       947M   39M  909M   5% /mnt
+4. mount = überprüfen
+5. umount /mnt
+6. mount
+
+#nochmal von vorn
+1. mount /dev/sda1 /mnt
+2. cd /mnt
+3. dd if=/dev/urandom if=/test bs=1M count=100
+[root@rhel mnt]# dd if=/dev/urandom of=test bs=1M count=100
+100+0 records in
+100+0 records out
+104857600 bytes (105 MB, 100 MiB) copied, 0.484387 s, 216 MB/s
+(Damit kann die Geschwindkeit z.B. der Festplatte getestet werden)
+4. df -h = man sieht, dass nun mehr Speicherplatz durch das "testfile" belegt ist
+5. umount /mnt
+target is busy.
+6. lsof /mnt = hier sieht man was ist gerade in benutzung bzw. busy oder eingehängt
+7. man darf sich auch nicht im /mnt Ordner befinden sonst wird diese auch verwendet
+8. umount /mnt
+
+[root@rhel ~]# mount| grep "^/dev"
+/dev/nvme0n1p3 on / type xfs (rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota)
+/dev/nvme0n1p1 on /boot type xfs (rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota)
+
+(Alles was mit /dev beginnt wird gegrept)
+
+#Automatisiertes Einhängen von Geräten mit fstab
+
+Die /etc/fstab enthält alle Informationen für das automatisierte Einhängen von Geräten
+Identifikation der Geräte über unterschiedliche Methoden
+
+Gerätedatei /dev/sdX1, Symlink /dev/disk, UUID oder LABEL
+UUID und LABEL sind bei externen Geräten vorzuziehen
+SystemD Mounts werden auf der  fstab erzeugt durch systemd-fstab-generator
+Änderungen der fstab werrden aktiv mit systemctl daemon-reload
+
+Leerzeichen in der fstab müssen mit /gekennzeichnet werden
+
+1.blkid
+2.UUID kopieren
+3.nano /etc/fstab
+4.mkdir /hdd1 && /hdd2
+UUID=e8cd5553-1107-4b4a-9aad-2fb4f52833e3 /                       xfs     defaults        0 0
+UUID=6b60016a-8a2b-4886-8491-9a569e0d712c /boot                   xfs     defaults        0 0
+UUID=f6e2c729-06ff-4103-9977-c34c2674c8a4 none                    swap    defaults        0 0
+/dev/sda1                                 /hdd1                   xfs     defaults        0 0
+UUID="9a5264dc-ea83-47ad-9ea3-224a717953dd"     /hdd2             ext4    defaults        0 0
+5. mount -a
+6. lsblk oder df -h = Überprüfung
+7. systemctl daemon-reload
+8.
+
+
+Wichtig! mit lsblk -f = kann man überprüfen welches FileSystem sich auf der Parition befindet
+wichtig! Wenn der Mountpoint nicht eingehängt ist wird die Root Partition genommen
+
+Der Labelname kann auch anstatt der UUID oder /dev/sda1 verwendet werden
+
+#Partitionen mit LABEL UND UUID
+
+tune2fs --help
+xfs_admin -- help
+(mit diesen Befehlen können Partitionen benannt werden)
+
+
+1. umount /hdd2 (device aushängen)
+2. xfs_admin -L Database /dev/sdb1(xfs) = gebe /dev/sdb1 den Namen "Database"
+3. tune2fs -L Bilder /dev/sda1(ext4) = gebe /dev/sda1 den Namen "Bilder"
+
+NAME        FSTYPE LABEL    UUID                                 MOUNTPOINT
+sda
+└─sda1      ext4   Bilder   d5ba9326-5799-4203-8326-89342010615d /hdd1
+sdb
+└─sdb1      xfs    Database b756babb-5b32-414a-a5dc-df23fc1a2965 /hdd2
+4. lsblk -f = Überprüfung
+5. df -h = Überprüfung
+6. blkid = Überprüfung
+
+#Andere Möglichkeit um devices in die /etc/fstab einzuhängen
+
+1. cd /dev/disk
+2. ls -la
+drwxr-xr-x.  8 root root  160 Jan 21 12:54 .
+drwxr-xr-x. 19 root root 3360 Jan 21 12:51 ..
+drwxr-xr-x.  2 root root  980 Jan 21 12:51 by-id
+drwxr-xr-x.  2 root root   80 Jan 21 12:55 by-label
+drwxr-xr-x.  2 root root   60 Jan 21 12:51 by-partlabel
+drwxr-xr-x.  2 root root  140 Jan 21 12:51 by-partuuid
+drwxr-xr-x.  2 root root  240 Jan 21 12:51 by-path
+drwxr-xr-x.  2 root root  140 Jan 21 12:51 by-uuid
+3. ls -la by-label
+lrwxrwxrwx. 1 root root  10 Jan 21 13:00 Bilder -> ../../sda1
+lrwxrwxrwx. 1 root root  10 Jan 21 13:00 Database -> ../../sdb1
+
+
+#Geräte mit SystemD statt Fstab mounten
+
+1. systemctl
+-.mount                                                                  loaded active mounted   Root Mount
+Bilder.mount                                                             loaded active mounted   /Bilder
+boot.mount                                                               loaded active mounted   /boot
+Database.mount                                                           loaded active mounted   /Database
+2. cd /run/systemd/generator/
+[root@rhel generator]# ls
+ Bilder.mount    'dev-disk-by\x2duuid-f6e2c729\x2d06ff\x2d4103\x2d9977\x2dc34c2674c8a4.swap'   swap.target.requires
+ boot.mount       local-fs.target.requires
+ Database.mount   -.mount
+
+3. cat Database.mount
+# Automatically generated by systemd-fstab-generator
+
+[Unit]
+SourcePath=/etc/fstab
+Documentation=man:fstab(5) man:systemd-fstab-generator(8)
+Before=local-fs.target
+
+[Mount]
+Where=/Database
+What=/dev/disk/by-label/Database
+Type=xfs
+
+4. cd /etc/systemd/system
+5. nano Database.mount
+[Unit]
+Description=DatabaseMount
+
+[Mount]
+Where=/Database
+What=/dev/disk/by-label/Database
+Type=xfs
+Options=defaults
+
+[Install]
+WantedBy=multi-user.target
+
+6. in der /etc/fstab den Eintrag auskommentieren
+7. systemctl daemon-reload
+8. ls -la /run/systemd/generator/
+9. Nun ist hier der Eintrag verschwunden den fstab hier anlegt
+10. systemctl start Database.mount
+11. lsblk -f = nun ist sie auf /Database gemountet
+12. systemctl enable Database.mount = nun wird nach jedem neustart automatisch gemountet
+13. systemctl status Database.mount
+
+root@rhel system]# systemctl list-unit-files -t mount
+UNIT FILE                     STATE
+-.mount                       generated
+Bilder.mount                  generated
+boot.mount                    generated
+Database.mount                enabled
+dev-hugepages.mount           static
+dev-mqueue.mount              static
+proc-fs-nfsd.mount            static
+proc-sys-fs-binfmt_misc.mount static
+run-vmblock\x2dfuse.mount     disabled
+sys-fs-fuse-connections.mount static
+sys-kernel-config.mount       static
+sys-kernel-debug.mount        static
+tmp.mount                     disabled
+var-lib-machines.mount        static
+var-lib-nfs-rpc_pipefs.mount  static
+
+#XFS DUMP AND XFSRESTORE
+
+cd /Database
+touch 2.conf
+echo "hallo Welt" > HW.txt
+(beides dummy dateien zum test)
+
+xfsdump -l 0 -f /root/Montag.database.bak /Database
+(-l = alles backupen, -f = Zielort)
+
+please enter label for this dump session (timeout in 300 sec)
+ -> Montag Database FUll backup
+
+ please enter label for media in drive 0 (timeout in 300 sec)
+ -> Backuptape 167
+
+
+ xfsdump: creating dump session media file 0 (media 0, file 0)
+ xfsdump: dumping ino map
+ xfsdump: dumping directories
+ xfsdump: dumping non-directory files
+ xfsdump: ending media file
+ xfsdump: media file size 22872 bytes
+ xfsdump: dump size (non-dir files) : 544 bytes
+ xfsdump: dump complete: 79 seconds elapsed
+ xfsdump: Dump Summary:
+ xfsdump:   stream 0 /root/Montag.database.bak OK (success)
+ xfsdump: Dump Status: SUCCESS
+
+Nun löschen wir zum testen die erstellten Dateien im Database Ordner
+
+Anschließend:
+
+xfsdump -I = für Informationen zum backup wiederherstellen bzw. einspielen
+
+xf[root@rhel ~]# xfsdump -I
+file system 0:
+	fs id:		b756babb-5b32-414a-a5dc-df23fc1a2965
+	session 0:
+		mount point:	rhel.test:/Database
+		device:		rhel.test:/dev/sdb1
+		time:		Mon Jan 24 11:14:01 2022
+		session label:	"Montag Database FUll backup"
+		session id:	206dfa15-bbf7-494a-88d3-51aa20f2946f
+		level:		0
+		resumed:	NO
+		subtree:	NO
+		streams:	1
+		stream 0:
+			pathname:	/root/Montag.database.bak
+			start:		ino 131 offset 0
+			end:		ino 133 offset 0
+			interrupted:	NO
+			media files:	1
+			media file 0:
+				mfile index:	0
+				mfile type:	data
+				mfile size:	22872
+				mfile start:	ino 131 offset 0
+				mfile end:	ino 133 offset 0
+				media label:	"Backuptape 167"
+				media id:	ebd31eb2-9da4-45e0-b252-0fc0d0210829
+xfsdump: Dump Status: SUCCESS
+
+xfsrestore -f /root/Montag.database.bak /Database = Hiermit stellen wir den BackUp auf /Database wieder her
+
+Anschließend sind die Dateien wieder vorhanden
+
+#XFSDUMP greift nicht auf die FSTAB zu
+
+#SWAP
+
+Auslagern von Hauptspeicher (RAM) auf die Festplatte
+Kann als eigene Partition oder Datei auf einem bestehendem Dateisystem angelegt werden
+HDDs/SSDs/NVMEs sind bedeutend langsamer als der Hauptspeicher
+Gute SSDs haben eine Zugriffszeit von 0,05ms (enstspricht 50.000ns)
+Die Zugriffszeit vom RAM beträgt 50ns (1000x schneller)
+Behebt "out of memory" Probleme, da der Hauptspeicher erweitert wird
+Anpassung der Swapiness und des Cache pressure (Dateisystem-Cache)
+Swapiness Werte: 0 wenn möglich keinen Swap, 100 verwendet möglich viel swap
+Standard 30, Empfohlen 60 am Desktop und 10-30 bei einem Server
+Cache Pressure Werte: 0 gibt keinen RAM frei, 100 gibt mehr RAM frei
+Standard: 100, Meistens empfohlen: 50
+
+free -h = Übersicht + Werte
+swapon --show = Übersicht + Werte
+
+Wir erstellen eine neue SWAP-Partition
+
+parted /dev/sdb
+mkpart
+swap
+linux-swap
+Anfang = 1 mehr als das Ende der 1. Parition
+Ende = wieviel die Partition vom Gesamtspeicherplatz erhalten soll
+
+mkswap /dev/sdb2
+swapon /dev/sdb2
+
+free -h = es ist mehr swap geworden
+swapon --show = es ist die neue Partition dazugekommen
+
+unter /etc/fstab wird nun swap unter swap gemountet statt einem Ordner
+
+UUID=3ab53aa0-081f-4f9f-998e-b228852b9f56 swap         	          swap 	  defaults     	  0 0
+
+#Wir erstellen ein SWAP-FILE statt einer Partition zusätzlich zu Partition aber auch möglich
+fallocate -l 1G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+
+/swapfile                                 swap 	                  swap 	  defaults     	  0 0
+
+#Zur Information
+[root@rhel /]# cat /proc/sys/vm/swappiness
+50
+
+[root@rhel /]# cat /proc/sys/vm/vfs_cache_pressure
+100
+
+[root@rhel /]# sysctl vm.swappiness=10
+vm.swappiness = 10
+
+[root@rhel /]# sysctl vm.vfs_cache_pressure=50
+vm.vfs_cache_pressure = 50
+
+(beides nur bis zum nächsten reboot)
+
+Dauerhaft machen:
+
+vim /etc/sysctl.conf
+
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+
+(beides eintragen dann dauerhaft)
+
+#SWAP und Partitionen löschen
+
+umount /Database /Bilder = unmounten
+
+swapoff /dev/sdb2 = SWAP Partition unmounten
+swapoff /swapfile = falls eine Datei statt Partition verwendet wurde
+free -h = zur Kontrolle
+
+Partitionen löschen:
+
+parted
+rm 1
+quit
+--------------
+Über parted kann man per "t" die Formatierung ändern z.B. Code 82 in SWAP
+
+
+#Professionelle Festplatten-Verwaltung
+
+LVM, Stratis, VDO
+
+
+Logical Volume Manager:
+
+Physical Volumes (PVs)
+Volume Groups (VGs)
+Logical Volumes (LVs)
+ Linear Volumes
+ Raid Volumes
+  Raid Level 0, 1, 4, 5, 6
+Thinly-provisioned logical volumes
+Snapshot volumes
+Cache Volumes
+
+Vorteiel:
+Flexible Kapazitäten mehrere Festplatten können zu einem LV zusammengefasst werden.
+Die Größe der LV kann erweitert bzw. verkleinert werden.
+Reallokierung von Daten
+Software Raid
+Volume Snapshots
+
+Nachteile:
+Ausfallgefahr im Striping
+Zugriff über Live-CDs
+
+LVM erstellen
+
+1. Partitionieren der Festplatte mittels parted oder fdisk
+2. Erstellen eines Physical Volumes mit pvcreate
+3. Erstellen einer Volume Group mit vgcreate
+4. Erstellen eines logischen Volumes aus der Volume Group heraus
+5. Formatieren des Logischen Volumes mkfs.xfs oder mkfs.Ext
+6. Automatisches mounten mittels /etc/fstab
+
+
+
+#Mit parted:
+
+parted /dev/sdb
+mklabel gtp
+(parted) mkpart
+Partition name?  []? LVM1
+File system type?  [ext2]? xfs
+Start? 1
+End? 1G
+(parted) p
+
+(parted) set 1 lvm on
+
+(parted) p
+Model: ATA VMware Virtual S (scsi)
+Disk /dev/sdb: 10.7GB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags:
+
+Number  Start   End     Size   File system  Name  Flags
+ 1      1049kB  1000MB  999MB  xfs          LVM1  lvm
+
+#mit fdisk:
+
+fdisk /dev/sdc
+
+Command (m for help): n
+Partition number (1-128, default 1):
+First sector (34-10485726, default 2048):
+Last sector, +sectors or +size{K,M,G,T,P} (2048-10485726, default 10485726): +1G
+
+Created a new partition 1 of type 'Linux filesystem' and of size 1 GiB.
+Partition #1 contains a xfs signature.
+
+Do you want to remove the signature? [Y]es/[N]o: Y
+
+The signature will be removed by a write command.
+
+dann mit "t" den Partitionstyp ändern
+31 = lvm
+w
+
+1.pvcreate /dev/sdb1
+1.pvcreate /dev/sdc1
+
+
+[root@rhel ~]# pvs
+  PV         VG Fmt  Attr PSize PFree
+  /dev/sdb1     lvm2 ---  1.00g 1.00g
+  /dev/sdc1     lvm2 ---  1.00g 1.00g
+
+  [root@rhel ~]# pvdisplay
+    "/dev/sdb1" is a new physical volume of "1.00 GiB"
+    --- NEW Physical volume ---
+    PV Name               /dev/sdb1
+    VG Name
+    PV Size               1.00 GiB
+    Allocatable           NO
+    PE Size               0
+    Total PE              0
+    Free PE               0
+    Allocated PE          0
+    PV UUID               ZKoPRm-40F6-BPMv-uMhV-IsvO-un7n-6p9iGd
+
+    "/dev/sdc1" is a new physical volume of "1.00 GiB"
+    --- NEW Physical volume ---
+    PV Name               /dev/sdc1
+    VG Name
+    PV Size               1.00 GiB
+    Allocatable           NO
+    PE Size               0
+    Total PE              0
+    Free PE               0
+    Allocated PE          0
+    PV UUID               q2Wmup-IZKi-Lk5Y-RV7A-r19z-uG0V-VLVo8Z
+
+2. vgcreate vg0 /dev/sdb1 /dev/sdc1
+   Volume group "vg0" successfully created
+
+   [root@rhel ~]# vgs
+     VG  #PV #LV #SN Attr   VSize VFree
+     vg0   2   0   0 wz--n- 1.99g 1.99g
+
+   [root@rhel ~]# vgscan
+       Found volume group "vg0" using metadata type lvm2
+
+  [root@rhel ~]# vgdisplay vg0
+         --- Volume group ---
+         VG Name               vg0
+         System ID
+         Format                lvm2
+         Metadata Areas        2
+         Metadata Sequence No  1
+         VG Access             read/write
+         VG Status             resizable
+         MAX LV                0
+         Cur LV                0
+         Open LV               0
+         Max PV                0
+         Cur PV                2
+         Act PV                2
+         VG Size               1.99 GiB
+         PE Size               4.00 MiB
+         Total PE              510
+         Alloc PE / Size       0 / 0
+         Free  PE / Size       510 / 1.99 GiB
+         VG UUID               fmqzmf-xk26-CSeL-1rnc-0Gaq-QZlE-fewDUc
+
+
+3. lvcreate -n vol_projekte -L 1G vg0
+4. lvcreate -n vol_backup -l 100%FREE vg0
+
+[root@rhel ~]# lvs
+  LV           VG  Attr       LSize    Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  vol_backup   vg0 -wi-a----- 1016.00m
+  vol_projekte vg0 -wi-a-----    1.00g
+
+  [root@rhel ~]# pvs
+    PV         VG  Fmt  Attr PSize    PFree
+    /dev/sdb1  vg0 lvm2 a--  1020.00m    0
+    /dev/sdc1  vg0 lvm2 a--  1020.00m    0
+
+  [root@rhel ~]# vgs
+      VG  #PV #LV #SN Attr   VSize VFree
+      vg0   2   2   0 wz--n- 1.99g    0
+
+5. mkfs.xfs /dev/vg0/vol_projekte
+6. mkfs.ext4 /dev/vg0/vol_backup
+
+[root@rhel ~]# mkdir /lvm/vol_projekte
+[root@rhel ~]# mkdir /lvm/vol_backup
+
+mount /dev/vg0/vol_backup /lvm/vol_backup
+mount /dev/vg0/vol_projekte /lvm/vol_projekte
+
+#LVM erweitern
+
+Partitionieren einer weiteren Festplatte mit parted oder fdisk
+Erstellen eines Physical Volumes mittels pvcreate
+Erweitern der Volume Group mit vgextend
+Bestehendes Logisches Volume erweitern mit lvextend
+Dateisystem resize des logischen Volumes mit resize2fs oder xfs_grow
+
+[root@rhel ~]# vgextend vg0 /dev/sda2
+  Volume group "vg0" successfully extended
+[root@rhel ~]# pvscan
+  PV /dev/sda1   VG vg0             lvm2 [1020.00 MiB / 0    free]
+  PV /dev/sdb1   VG vg0             lvm2 [1020.00 MiB / 0    free]
+  PV /dev/sda2   VG vg0             lvm2 [1020.00 MiB / 1020.00 MiB free]
+  PV /dev/sdb2                      lvm2 [1022.98 MiB]
+  Total: 4 [<3.99 GiB] / in use: 3 [<2.99 GiB] / in no VG: 1 [1022.98 MiB]
+[root@rhel ~]# vgextend vg0 /dev/sdb2
+  Volume group "vg0" successfully extended
+[root@rhel ~]# pvscan
+  PV /dev/sda1   VG vg0             lvm2 [1020.00 MiB / 0    free]
+  PV /dev/sdb1   VG vg0             lvm2 [1020.00 MiB / 0    free]
+  PV /dev/sda2   VG vg0             lvm2 [1020.00 MiB / 1020.00 MiB free]
+  PV /dev/sdb2   VG vg0             lvm2 [1020.00 MiB / 1020.00 MiB free]
+  Total: 4 [3.98 GiB] / in use: 4 [3.98 GiB] / in no VG: 0 [0   ]
+
+[root@rhel ~]# lvextend -L +1G /dev/vg0/vol_project
+    Size of logical volume vg0/vol_project changed from 1.00 GiB (256 extents) to 2.00 GiB (512 extents).
+    Logical volume vg0/vol_project successfully resized.
+
+    [root@rhel ~]# resize2fs /dev/vg0/vol_backup
+    resize2fs 1.45.6 (20-Mar-2020)
+    Filesystem at /dev/vg0/vol_backup is mounted on /lvm/vol_backup; on-line resizing required
+    old_desc_blocks = 1, new_desc_blocks = 1
+    The filesystem on /dev/vg0/vol_backup is now 520192 (4k) blocks long.
+
+
+#LVM verkleinern
+
+Das Dateisystem XFS erlaubt nur eine Erweiterung
+Das Dateisystem ext4 erlaubt Verkleinerung und Erweiterung mit resize2fs
+Um ein Dateisystem zu verkleinern müssen wir die Partition aushängen (umount)
+Wenn möglich immer ein Backup der Daten machen vor dem verkleinern
+Dateisystemintegrität muss vor dem verkleinern überprüft werden
+Mit resize2fs lassen sich die Partitionen verkleinern und vergrößern
+Um das Logical Volume zu verkleinern gibt es lvreduce
+
+1. umount /lvm/vol_backup
+2. df -h od. lsblk -f = zur Überprüfung ob device ausgehängt ist
+3. resize2fs /dev/vg0/vol_backup 1G
+4. e2fsck -f /dev/vg0/vol_backup
+5. lvreduce -L 1G /dev/vg0/vol_backup (angegeben wird immer die Size welche am Ende benötigt wird)
+6. lvs
+7. mount /dev/vg0/vol_backup /lvm/vol_backup = wieder einhängen
+
+#Der Device Mapper
+
+Der Device Mapper ist ein Teil des Linux-Kernels
+Ein Kernel-Treiber der in ein Framework zur Verwaltung von Datenträgern bietet
+Erlaubt die Erzeugung virtueller blockorientierter Geräte
+Logische LVM Datenträger werden unter Verwendung des Device-Mappers aktiviert und setzen symbolische
+Links mit passenden Namen
+Alle Device-Mapper Geräte gfidnen sich unter /dev/dm-*
+Verlinukungen der DM Geräte anhand der Namen finden sich unter /dev/mapper
+
+#Webserver
+
+Apache Konfig unter : /etc/httpd/conf oder /etc/apache2/conf
+HTML-Dateien unter /var/www/html
+
+
+systemctl restart httpd oder apachectl reload (Nach veränderter Konfig)
+
+conf.d sind snap-in configs die mitgeladen werden
+welcome.conf = ist die standard html Page beim öffnen des Browsers
+
+Der HTML Code für die Standardpage liegt unter /usr/share/httpd/noindex/index.html
+Unter /var/www/html/index.html (z.B. "Hallo Welt" schreiben und nun erscheint diese Message im Browser)
+
+apachectl configtest = syntax überprüfen
+
+[root@rhel html]# apachectl configtest
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using rhel.test. Set the 'ServerName' directive globally to suppress this message
+Syntax OK
+
+Wir ändern in der httpd.conf : ServerName localhost oder IP oder FQDN
+
+[root@rhel conf]# apachectl configtest
+Syntax OK
+[root@rhel conf]#
+
+
+#Root PW vergessen und zurücksetzen
+
+1. Grub Boot Prozess anpassen (rd.break)
+2. Einhängen der Festplatte (mount)
+3. SELinux Labels beachten (autorelable)
+4. Abmelden und neustarten
+
+Im Bootmenü auf einen "Kernel-Eintrag" "e" drücken
+
+Auf der Zeile "Linux..." "end" drücken und ans Ende der Zeile "rd.break" schreiben
+Mit "strg +x" beenden
+
+switch_root:/# mount -o remount,rw /sysroot
+switch_root:/# chroot sysroot
+switch_root:/# passwd
+switch_root:/# touch /.autorelabel
+exit
+exit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Kernel Verwaltung
+
+Kernel installieren, updaten
+Kernel Module anzeigen, aktivieren und deaktivieren
+Kernel Parameter anpassen und verstehen
+
+1. Kernel ist der Kern vom Linux-System
+2. Es empfiehlt sich immer einen neuen Kernel zu installieren anstatt den aktuellen updaten. Damit sind beide kernel aktiv und können im Boot-Modus ausgewählt werden
+3. Typischerweise wird ein kernel-Upgrade gemacht um neue Features zu nutzen, Bugs zu beseitigen etc.
+4. mit lsmod, modinfo, modprobe, und depmod verwalten wir die Module vom kernel
+5. wenn wir "rpm" nutzen für eine Kernel installation nutzen Sie immer -i anstelle von -U um einen neuen Kernel zu installieren und nicht den bestehenden zu updaten.
+   Damite haben Sie die Möglichkeit auch vom alten Kernel zu Booten, sollte etwas nicht funktionieren
+
+uname -r
+uname -a
+cat /proc/version
+cat /proc/cmdline
+
+[root@rhel ~]# cat /proc/version
+Linux version 4.18.0-348.7.1.el8_5.x86_64 (mockbuild@x86-vm-08.build.eng.bos.redhat.com) (gcc version 8.5.0 20210514 (Red Hat 8.5.0-4) (GCC)) #1 SMP Wed Dec 8 21:51:17 EST 2021
+[root@rhel ~]# cat /proc/cmdline
+BOOT_IMAGE=(hd0,msdos1)/vmlinuz-4.18.0-348.7.1.el8_5.x86_64 root=UUID=e8cd5553-1107-4b4a-9aad-2fb4f52833e3 ro crashkernel=auto resume=UUID=f6e2c729-06ff-4103-9977-c34c2674c8a4 rhgb quiet
+
+dnf update kernel = es handelt sich um eine installation und kein update
+dnf list installed kernel = hier sieht man welcher Kernel gerade installiert ist
+
+Auflisten der kernelmodule mit lsmod oder kmod list
+Modulinfotmationen anzeigen lassen mit modinfo
+Module aktivieren und deaktivieren mit modprobe
+Abhängigkeiten von Modulen mit depmod
+Einstellungen zu den Modulen finden sich in /etc/modprobe.d/
+
+lsmod = listet Module inkl. Abhängigkeiten
+modinfo <modul> = zeigt Informationen (man kopiert den namen eines Moduls der Ausgabe von lsmod)
+modprobe -vr dm_mirror = entfernen mit verbose
+modprobe -v dm_mirror= fügt mit verbose wieder das Modul hinzu
+depmod = überprüft Abhängigkeiten und zeigt sie an
+depmod -a
+depmod -n = zeigt inkl alias etc an
+
+
+#Kernel Prozessinformationen
+
+In /proc findet man aktive Prozessinformationen anhand PID und den aktiven Einstellungen der Module
+/proc ist ein eigenes Dateisystem welches direkt vom kernel erzeugt wird
+In /proc/sys lassen sich Änderungen am aktiven Kernel vornehmen wie z.B. Swappiness oder Netzwerkeinstellungen
+
+[root@rhel ~]# mount
+sysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime,seclabel)
+proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
+(hier sieht man das vom Kernel erzeugte FileSystem /proc)
+
+cd /proc
+(die zahlen sind die PIDs)
+
+ps ax
+(hier tauchen sie auf)
+
+cat /proc/cpuinfo
+cat /proc/devices
+cat /proc/mounts
+cd /proc/sys/vm
+echo "50" > swappiness
+
+cat /etc/sysctl.conf = dort die persistente swappiness
+
+wenn bei lsmod eine 0 dabei steht im modul dann ist dieses nicht aktiv
+
+
+
+
+
+# GRUB-Bootloader
+
+Bootmenü ist veränderbar mit der Taste "e(edit)"
+GRUB Command Prompt mit Taste "c"
+Mit CTRL + X lässt sich nach Anpassung der Bootparameter das System starten
+
+1. load_video = Grafiktreiber werden geladen
+2. set gfx_payload=keep = bedeutet überspringe diese Einstellungen und wechsle in den Grafikmodus
+3. insmod gzio = Damit wird ein kernelmodul geladen um komprimierte,archivierte Files zu öffnen und bearbeiten
+4. linux kernel = Linux-Kernel
+5. initrd / initramfs = komprimiertes Archiv für den Systemstart benötigt wird und gemountet
+6. SystemD = Die Dienste werden der Reihe nach gestaretet
+
+rhgb quiet = red hat graphical boot = versucht die Boot nachrichten zu verstecken und zeigt einen Ladebalken
+
+Grub - Permanente Konfiguration
+
+Konfigurationsdatei von Grub befindet sich unter /etc/default/grub
+Mit grub2-mkconfig lässt sich die Konfiguration aktivieren, beachten Sie hierbei die Angaben für EFI oder BIOS
+Die grub.cfg wird automatisch generiert und sollte nicht editiert werden
+
+1. nano /etc/default/grub
+
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=true
+GRUB_TERMINAL_OUTPUT="console"
+GRUB_CMDLINE_LINUX="crashkernel=auto resume=UUID=05626784-1ea2-4092-a8d1-82878c172d8f rhgb quiet"
+GRUB_DISABLE_RECOVERY="true"
+GRUB_ENABLE_BLSCFG=true
+
+(wir haben rhgb quit herausgelöscht)
+
+2. grub2-mkconfig = Um die Änderung aktiv zu machen
+
+Nun müssen wir herausfinden ob es sich um EFI oder BIOS handelt
+
+Hierzu schauen wir in den Ordner /boot/
+Falls hier der EFI Ordner leer ist und sich das grub.cfg aber im grub2 Ordner befindet dann haben wir grub2
+
+3. grub2-mkconfig -o /boot/grub2/grub.cfg
+
+Info: das Initram muss mit dem zu bootendem Kernel übereinstimmen
+
+
+# Booten in ein spezielles Target
+
+Targets sind eine Gruppe von SystemD Unit Dateien
+z.B. Emergency, rescue, multi-user, graphical.target
+Ändern der Bootparameter um ein bestimmtes Target zu Booten
+systemd.unit=emergency.target
+Wechseln des Targets nach dem Start mit systemctl isolate multi-user.target
+
+1. Mit systemd.unit=rescue.target eingetragen an die rhgb Stelle
+2. In der Emergency Shell kann man zb per systemctl list-units oder systemctl cat sshd aufrufen oder systemctl cat graphical.target
+3. systemctl start graphical.target
+
+Reihenfolge:
+1. nano /etc/default/grub = Hier Änderungen vornehmen
+2. cd /boot/grub2/grub.cfg
+3. grub2-mkconfig -o grub.cfg = Nun wir die Konfigurations geschrieben und persistent übernommen
+
+#Open-SSH Verwaltung
+
+OpenSSH besteht aus 3 Paketen:
+openssh, openssh-client, openssh-server
+
+OpenSSH kann Tunneling, TCP Port Weiterleitung etc.
+
+Konfiguration für Client: /etc/ssh/ssh_config
+Konfiguration für Server: /etc/ssh/sshd_config
+
+scp
+sftp
+slogin
+ssh
+ssh-add
+ssh-agent
+ssh-copy-id
+ssh-keygen
+
+Um ssh Port umzubiegen:
+# semanage port -a -t ssh_port_t -p tcp #PORTNUMBER
+#
+#Port 22
+
+#ListenAddress 192.168.110.10
+(man kann sich lokal nur auf die genannte Adresse anmelden)
+
+#TCP Wrappers - INFO Lektion (NUR für RHEL 7)
+
+Der TCP Wrapper wurde in RHEL8 durch Firewalld abgelöst
+
+Einrichten ob es einem Client erlaubt ist, sich mit einem Dienst zu verbinden, definiert der TCP Wrapper in Dateien, welche
+auch als hosts access-Dateien bezeichnet werden.
+
+/etc/hosts.allow und /etc/hosts.deny - Format:dameon:client (vsftpd: .beispiel.com)
+Allow Zugriffe werden bevorzugt und haben gegenüber Deny Vorrang
+
+
+Plazhalter:
+
+ALL - Kann für die Daemon als auch für die Clients verwendet werden (sshd:ALL)
+LOCAL - Verbindungen vom lokalen Netzwerk (sshd:LOCAL)
+KNOWN - Wenn Host-Name und Host-Addresse oder der Benutzer bekannt sind.
+UNKNOWN - Wenn Host-Name und Host-Addresse oder der Benutzer unbekannt sind.
+PARANOID - Wenn Host-Name nicht mit der Host-Addresse übereinstimmt
+
+Beispiel: sshd:192.168.0. EXCEPT 192.168.0.1, 192.168.0.2
+
+Alle Logs zum TCP-Wrapper werden in /var/log/secure gespeichert
+
+#SSH-Schlüsselanmeldung
+
+ssh-keygen
+ssh-keygen -t rsa -b 1024
+cd .ssh
+authorized_keys  id_rsa  id_rsa.pub
+
+ssh-copy-id -i id_rsa.pub root@192.168.92.135
+
+tail /var/log/secure
+Log für ssh-Anmeldungen
+
+
+#SCP
+
+Von Lokal auf Remote:
+scp lokal.txt root@192.168.92.136:/root/
+scp lokal.txt dennis:/root
+
+Von Remote auf Lokal:
+scp dennis:/root/remote.txt .
+scp root@192.168.92.136:/root/remote.txt .
+
+#SFTP
+
+sftp dennis oder sftp <IP>
+
+get sftp.txt = wir nehmen die Datei vom Zielsystem auf unseres
+
+progress = Fortschrittsbalken für größere Dateien anzeigen
+
+get -R sftp = Den Ordner "sftp" ziehen.
+
+
+#Befehle remote über SSH ausführen
+
+ssh <Benutzer> ls -la
+ssh <Benutzer> cat /etc/hosts
+ssh <Benutzer> 'ls -la /root > lsla.txt'
+ssh <Benutzer> 'ls -la /root ; ls -la /root'
+
+
+#Rsync über SSH
+
+Mit rsync lassen sich Ordner und Dateien abgleichen und Synchronisieren
+
+Wenn bei der Quelle und Ziel die Datei existiert werden nur die Änderungen Synchronisiert
+
+Rsync benutzt das SSH Protokoll um eine sichere Übertragung zu gewährleisten und komprimiert standardmäßig auch die Daten
+um Transfervolumen zu sparen
+
+Rsync bietet viele Optionen und lassen sich gut in Bash Scripte verwenden und anpassen
+Rsync können Sie auch lokal verwenden um z.B. Backups auf externe Geräte zu sichern
+Kann auch ACLs (-A) und SELinux Content (-X) synchronisieren
