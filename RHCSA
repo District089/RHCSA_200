@@ -1562,6 +1562,7 @@ w
 
 2. vgcreate vg0 /dev/sdb1 /dev/sdc1
    Volume group "vg0" successfully created
+3. vgextend vg0 /dev/sdc1 = pv zu vg hinzufügen
 
    [root@rhel ~]# vgs
      VG  #PV #LV #SN Attr   VSize VFree
@@ -1996,3 +1997,623 @@ Rsync können Sie auch lokal verwenden um z.B. Backups auf externe Geräte zu si
 Kann auch ACLs (-A) und SELinux Content (-X) synchronisieren
 
 rsync -a /boot/grub2 /backup/
+rsync -avz /boot/grub2 root@192.168.92.136:/root/backup
+rsync -avzAX /home/rene root@192.168.92.136:/backup = hiermit werden acls und selinux übernommen
+rsync -avzAX --numeric-ids /home/rene root@192.168.92.136:/backup
+
+
+
+#Automatische Installation Kickstart
+
+Eine Kickstart Datei definiert die Einstellung für eine Installation und kann von hand geschrieben werden oder über das GUI basierte "system-config-kickstart-tool"
+
+Eine Konfigurationsdatei für Kickstart wird bei der Installation des Betriebssystems automatisch abgelegt unter /root/anaconda-ks.cfg
+
+Kickstart-Dateien können von Wechselmedien, Festplatte oder einem Netz-server gebootet werden
+
+
+Wir legen die Kickstart-Datei bspw. auf einen Webserver unter /var/www/
+curl 192.168.92.135/ks.cfg
+
+Wir legen eine neue VM an mit der RHEL8 ISO
+Im BootMenu drücken wir "esc" und starten mit folgendem Befehl die Kickstart_Datei
+
+linux ks=http://192.168.92.135
+
+
+Kickstart Quellen:
+
+DVD-Laufwerk = ks=cdrom:/directory/ks.cfg
+Festplatte = ks=hd:/device/ks.cfg
+Anderes Laufwerk = ks=file:/device/ks-cfg
+HTTP-Server = ks=http://server.mydomain.com/directory/ks.cfg
+HTTPS-Server = ks=https://server.mydomain.com/dirctory/ks.cfg
+FTP-Server = ks=ftp://server.mydomain.com/directory/ks.cfg
+NFS-Server = ks=nfs:server.mydomain.com:/directory/ks.cfg
+
+
+#FirewallD
+
+
+FirewallD stellt das Frontend für nftables oder iptables dar.
+
+Iptables sind alt und nftables sind neu.
+
+Nftables ersetzen iptables und bringen neue Funktionen mit sich.
+
+Der FirewallD Daemon verwaltet Gruppen mithilfe von Entitäten, die Zonen genannt werden.
+
+Konfigurationen geschehen über XML Dateien und dem firewalld-cmd Befehl
+Zonen sind Regeln die vorgeben, welcher DAtenverkehr abhängig von der Vertrauensstufe, die Sie im Netzwerk haben zugelassen werden sollen
+Einzelne Ports lassen sich spezifisch freigeben oder blocken
+Permanente Regeln können mit --permanent übernommen werden
+
+man firewall-cmd
+
+[root@test ~]# firewall-cmd --state
+running
+
+[root@test ~]# firewall-cmd --get-default-zone
+public
+
+[root@test ~]# firewall-cmd --get-active-zone
+docker
+  interfaces: docker0
+public
+  interfaces: ens160
+
+[root@test ~]# firewall-cmd --list-all
+public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: ens160
+  sources:
+  services: cockpit dhcpv6-client ssh
+  ports:
+  protocols:
+  forward: no
+  masquerade: no
+  forward-ports:
+  source-ports:
+  icmp-blocks:
+  rich rules:
+
+root@test ~]# firewall-cmd --list-all-zones | less
+
+[root@test ~]# firewall-cmd --get-zones
+block dmz docker drop external home internal libvirt nm-shared public trusted work
+
+[root@test ~]# firewall-cmd --get-services = Hier sieht man die ganzen xml Dateien (Sie liegen unter /usr/lib/firewalld/services/)
+
+[root@test ~]# cat /usr/lib/firewalld/services/http.xml
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>WWW (HTTP)</short>
+  <description>HTTP is the protocol used to serve Web pages. If you plan to make your Web server publicly available, enable this option. This option is not required for viewing pages locally or developing Web pages.</description>
+  <port protocol="tcp" port="80"/>
+</service>
+
+[root@test ~]# firewall-cmd --zone=public --add-service=http
+success
+[root@test ~]# firewall-cmd --zone=public --add-service=https
+success
+
+[root@test ~]# firewall-cmd --list-services
+cockpit dhcpv6-client http https ssh
+
+firewall-cmd --reload = nun ist der Service wieder verschwunden, da wir nicht permanent eingerichtet haben
+
+[root@test ~]# firewall-cmd --zone=public --add-service=https --permanent
+success
+[root@test ~]# firewall-cmd --zone=public --add-service=http --permanent
+success
+
+[root@test ~]# firewall-cmd --runtime-to-permanent
+success
+Der Befehl macht alle Änderungen anhand des IST-Status permanent
+
+[root@test ~]# firewall-cmd --zone=public --add-port=2050/tcp
+success
+[root@test ~]# firewall-cmd --zone=public --add-port=2050-2099/udp
+success
+[root@test ~]# firewall-cmd --zone=public --list-ports
+2050/tcp 2050-2099/udp
+
+[root@test ~]# cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/nodejs.xml
+[root@test ~]# nano /etc/firewalld/services/nodejs.xml
+
+[root@test ~]# firewall-cmd --zone=public --add-service=nodejs
+success
+
+[root@test ~]# firewall-cmd --permanent --new-zone=webpub
+success
+
+[root@test ~]# firewall-cmd --permanent --new-zone=webprivate
+success
+
+[root@test ~]# firewall-cmd --get-zones
+block dmz docker drop external home internal libvirt nm-shared public trusted webprivate webpub work
+
+
+[root@test ~]# firewall-cmd --zone=webpub --add-service=https
+success
+[root@test ~]# firewall-cmd --zone=webpub --add-service=http
+success
+[root@test ~]# firewall-cmd --zone=webpub --add-service=ssh
+success
+
+[root@test ~]# firewall-cmd --zone=webpub --list-all
+webpub
+  target: default
+  icmp-block-inversion: no
+  interfaces:
+  sources:
+  services: http https ssh
+  ports:
+  protocols:
+  forward: no
+  masquerade: no
+  forward-ports:
+  source-ports:
+  icmp-blocks:
+  rich rules:
+
+[root@test ~]# firewall-cmd --zone=webprivate --add-port=8080/tcp
+success
+
+[root@test ~]# firewall-cmd --set-default-zone=webpub
+success
+
+[root@test ~]# firewall-cmd --get-default-zone
+webpub
+
+
+#SHELL-Scripting
+
+#!/bin/bash
+
+echo "Willkommen $1 in unserer Abteilung!"
+
+./shell.sh Dennis
+
+Dennis wird zu $1
+
+"Willkommen Dennis in unserer Abteilung!"
+
+[root@test ~]# touch for-schleife.sh | xargs chmod +x for-schleife.sh
+
+#!/bin/bash
+
+for ((counter=10; counter>0; counter--))
+do
+        echo -n "$counter "
+done
+printf "\n"
+
+echo -n = kein Zeilenumbruch in der Ausgabe!
+
+
+
+#!/bin/bash
+
+echo "Geben Sie Ihren Namen an"
+read name
+
+if [ $name = "Dennis" ]
+then
+        echo "Hallo Chef"
+else
+        echo "Hallo Mitarbeiter"
+fi
+
+-eq geht nur bei Integer deshalb wird "=" benutzt in den eckigen Klammern
+
+
+#!/bin/bash
+
+echo "Geben Sie Ihren Namen an"
+read name
+
+if [[ $name = "Dennis" || $name = "Steffi" ]]
+then
+        echo "Hallo Chef"
+else
+        echo "Hallo Mitarbeiter"
+fi
+
+Hier kann man 2 Werte abfragen z.B. wenn es 2 Chefs gibt, dafür müssen aber auch 2 eckige Klammern benutzt werden
+
+
+#!/bin/bash
+
+echo "Geben Sie Ihren Namen an"
+read name
+
+if [[ $name = "Dennis" || $name = "Steffi" ]]
+then
+        echo "Hallo Chef"
+else
+        echo "Hallo Mitarbeiter"
+fi
+
+echo "Geben Sie die Personalnummer ein!"
+read n
+
+if [[ ( $n -eq 15 || $n -eq 45 ) ]]
+then
+        echo "Die Zahl stimmt!"
+else
+        echo "Die Zahl stimmt nicht!"
+fi
+
+./schleife.sh 15
+
+#!/bin/bash
+
+counter=$1
+
+while [ $counter -gt 0 ]
+do
+        echo -n "$counter "
+        counter=$(( $counter -1 ))
+done
+
+
+#!/bin/bash
+
+for (( counter=1; counter<=20; counter++ ))
+do
+        echo -n "$counter "
+done
+
+
+#Dateifreigaben
+
+NFS und Samba-Server installieren und konfigurieren
+
+NFS-Grundlagen:
+
+(Network File System) ist ein Netzwerk-Protokoll um Dateien über das lokale Netzwerk auszutauschen
+NFS ist die primäre Linux / Unix Freigaben Methode im GEgensatz zu Samba (SMB)
+welches für Windows gedacht ist.
+
+In der Regel ist NFS etwas schneller als SAMBA und eignet sich daher ideal als Freigabe zwischen den Linux Systemen
+
+RPC-Bind wird benötigt für NFSv2 und NFSv3 damit der NFS Client weiß welche Ports benutzt werden vom NFS-Server.
+Beim NFSv4 Protkoll ist RPC-Bind teil des Protokolls und wird nicht zusätzlich benögit.
+
+NFS wurde ursprünglich für interne Netzwerke entwickelt. Es bietet von sich einen Mechanismus, um Benutzer zu authentifizieren.
+Mit NFSv4 wurde die Möglichkeit der Kerberos-Authentifizierung hinzugefügt.
+
+
+
+#NFS Installation
+-> Server / Client
+-> nfs-server Dienst muss auf dem Server wlaufen welcher den freigegebenen Ordner beinhaltet
+-> Freigaben (NFS Shares) werden über die Datei /etc/exports konfiguriert oder mittels Programm exportfs
+    -> /freigabeordner host1(optionen), host2 (optionen)
+    /nfsfreigabe 192.168.0.10/24 (rw, no_root_squash)
+-> no_root_squash - Nur intern verwenden
+
+1. Installation des NFS Server / Client Paketes
+2. Ordner definieren oder erstellen der für die Freigabe vorgesehen ist
+3. Freigabe definieren in der Exports DAtei und diese neu einlesen
+4. Firewall konfigurieren für NFS, MountD, RPC-Bind
+5. SELinux Boolean nfs_export_all_rw auf 1 setzen
+
+SERVER:
+Auf dem Server ist evtl. schon der NFS-Server installiert
+Systemctl status nfs-server
+● nfs-server.service - NFS server and services
+   Loaded: loaded (/usr/lib/systemd/system/nfs-server.service; disabled; vendor>
+   Active: inactive (dead)
+
+systemctl enable --now nfs-server rpcbind
+
+man exports
+
+mkdir /nfsfreigabe
+vim /etc/exports
+/nfsfreigabe *(rw, no_root_squash)
+
+exportfs -ra
+
+systemctl restart nfs-server
+systemctl status nfs-server
+
+[root@test ~]# firewall-cmd --permanent --add-service=nfs
+success
+[root@test ~]# firewall-cmd --reload
+success
+[root@test ~]# firewall-cmd --permanent --add-service=mountd
+success
+[root@test ~]# firewall-cmd --permanent --add-service=rpc-bind
+success
+[root@test ~]# firewall-cmd --reload
+success
+
+[root@test ~]# firewall-cmd --list-all
+webpub (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: ens160
+  sources:
+  services: mountd nfs rpc-bind ssh
+  ports:
+  protocols:
+  forward: no
+  masquerade: no
+  forward-ports:
+  source-ports:
+  icmp-blocks:
+  rich rules:
+
+[root@test ~]# sestatus
+SELinux status:                 enabled
+SELinuxfs mount:                /sys/fs/selinux
+SELinux root directory:         /etc/selinux
+Loaded policy name:             targeted
+Current mode:                   enforcing
+Mode from config file:          enforcing
+Policy MLS status:              enabled
+Policy deny_unknown status:     allowed
+Memory protection checking:     actual (secure)
+Max kernel policy version:      33
+
+[root@test ~]# semanage boolean -l| grep nfs_
+nfs_export_all_ro              (on   ,   on)  Allow nfs to export all ro
+nfs_export_all_rw              (on   ,   on)  Allow nfs to export all rw
+use_nfs_home_dirs              (off  ,  off)  Allow use to nfs home dirs
+
+(ist schon alles eingestellt)
+
+cd /nfsfreigabe
+touch testdatei
+
+#NFS-Freigabe einhängen
+
+Freigaben können neben der export Datei auch mit showmount angezeigt werden
+Um ein Ordner vom CLient System aus Einhängen zu können wird ebenfalls der Mount-Befehl benutzt
+
+   -> mount IPAdresse:/freigabeOrdner /lokalerOrdner
+   -> mount -t nfs-o optionen host:/freigabeOrdner /lokalerOrdner
+
+Dauerhaftes einbinden via fstab
+ -> IPAdresse:/freigabeOrdner /lokalerOrdner nfs _netdev 0 0
+(netdev bedeutet, dass erst gemountet wird sobald das Zielsystem auch erreichbar ist)
+
+Optional über Hostname / DNS Auflösung
+
+
+Client:
+dnf search nfs
+dnf install nfs-utils
+
+vim /etc/hosts
+192.168.92.136 nfs-server
+ping nfs-server
+
+mkdir /server1
+
+GOTO Server
+[root@test nfsfreigabe]# showmount --exports
+Export list for test.rhel:
+/nfsfreigabe *
+
+GOTO Client
+mount 192.168.92.136:/nfsfreigabe /server1
+df -h
+cd /server1
+touch server1dateivonserver2
+GOTOserver
+cd /nfsfreigabe
+ls
+[root@test nfsfreigabe]# ls
+freigabe.sh  server1dateivonserver2
+
+umount /server1
+vim /etc/fstab
+nfs-server:/nfsfreigabe /server1 nfs _netdev 0 0
+mount -a
+
+#Samba Server
+Ein Samba-Server ermöglicht die Freigabe von Dateien und Druckern zwischen Windows,- und Linux Rechnern
+
+Der Name Samba hat seinen Ursprung beim SMB-Protkoll (Server Message Block), das unter Windows für den netzbasierten Datenaustausch
+eingesetzt wird.
+
+Statt SMB wird auch immer wieder vom "Common Internet File System" (CIFS) gesprochen. CIFS ist eine Weiterentwicklung von SMB und wurde
+ursprünglich von Microsoft entwickelt
+
+Samba hat eine eigene Benutzerverwaltung und Active Directory etc.
+
+1. Server / Client
+2. smb & nmb Dienst muss am Server laufen welcher Freigegebenen Ordner beinhaltet
+3. Freigaben  (SMB Shares) erstellen in /etc/samba/smb.conf und Berechtigungen setzen
+4. Lokalen Benutzer erstellen und mittels smbpasswd zum SMB hinzufügen
+5. Firewall
+6. SELinux für Samba (samba_share_t)
+7. config überprüfen mit testparm
+8. Benutzer editieren / listen mit pdbedit
+
+SERVER1
+dnf install samba -y
+mkdir /sambafreigabe
+adduser -M samba -s /sbin/nologin
+chown samba.samba /sambafreigabe/
+chmod 755 /sambafreigabe
+smbpasswd -a samba
+123
+123
+[root@test ~]# pdbedit -L
+samba:1003:
+[root@test ~]# systemctl status smb.service nmb.service
+[root@test ~]# systemctl enable --now smb nmb
+[root@test ~]# firewall-cmd --add-service=samba --permanent
+success
+[root@test ~]# firewall-cmd --reload
+success
+[root@test ~]# firewall-cmd --list-all
+webpub (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: ens160
+  sources:
+  services: mountd nfs rpc-bind samba ssh
+  ports:
+  protocols:
+  forward: no
+  masquerade: no
+  forward-ports:
+  source-ports:
+  icmp-blocks:
+  rich rules:
+
+cat /etc/samba/smb.conf.exampe = Zur Hilfe Beispiele für die config
+vim /etc/samba/smb.conf
+[sambafreigabe]
+        path = /sambafreigabe
+        guest ok = No
+        read only = No
+unten an die config hängen
+
+testparm = um den Auszug der config nochmal anzusehen
+systemctl restart smb nmb
+
+#Samba Freigaben einhängen
+Um eine Samba Freigabe einhängen zu können benötigen wir die cifs-utils und samba-client
+-> dnf install samba-client cifs-utils
+Auflistung der Samba Freigaben mit dem smbclient
+mount -o username=samba //server/sambafreigabe /lokalerOrdner
+Dauerhaftes einbinden via fstab
+-> //IPAdresse/freigabeOrdner /lokalerOrdner cifs netdev,username=samba,passwd=123 0 0
+
+CLIENT
+dnf install -y samba-client cifs-utils
+mkdir /sambaOrdner
+smbclient -L //samba-server
+
+[root@rhel /]# smbclient -L //samba-server
+Enter SAMBA\root's password:
+Anonymous login successful
+
+	Sharename       Type      Comment
+	---------       ----      -------
+	print$          Disk      Printer Drivers
+	sambafreigabe   Disk
+	IPC$            IPC       IPC Service (Samba 4.14.5)
+SMB1 disabled -- no workgroup available
+[root@rhel /]# mount -o username=samba,password=123 //samba-server/sambafreigabe /sambaOrdner
+
+mount = Befehl zur Überprüfung
+cd /sambaOrdner
+touch DateivonSamba
+
+GOTO Server
+cd /sambafreigabe
+[root@test sambafreigabe]# ls
+DateivonSamba
+
+GOTO CLient
+#Wir unmounten nun die Freigabe und hängen Sie dauerhaft inder /etc/fstab ein
+
+umount /sambaOrdner
+df -h = zur Überprüfung
+vim /etc/fstab
+//samba-server/sambafreigabe /sambaOrdner cifs _netdev,username=samba,password=123 0 0
+mount -a
+df -hT
+
+#Info wenn wir auf Server1 setenforce 1 also SELinux aktivieren dann ist keine Berechtigung mehr auf der Freigabe
+Also setzen wir setenforce 0
+journalctl -r = gibt AUskunft darüber dass SELinux im Weg steht
+ODER auf Server 1:
+chcon -t samba_share_t /sambafreigabe/Datei = zu holen ist diese Zeile aus /etc/samba/samba.example.config
+(muss auf jede sich in der Freigabe befindeten Datei gesetzt werden)
+
+#Automount
+
+Mit autofs lassen sich Partitionen bei Bedarf automatisch einhängen (mounten) und bei längerer Nichtbenutzung auch automatisch wieder Aushängen
+Beim Systemstart automatisch statisch ordner einzubinden, ist ein EIntrag in der /etc/fstab notwendig. Mit Autofs werden diese erst dann automaitsch eingehängt, wenn auf sie zugegriffen wird.
+Z.B. für Backups  (sobald das Backup gestartet wird mounte das Laufwerk)
+Autofs so konfigrueiren, dass eingehänge partitionen nach einer frei wählbaren Zeit automatisch wieder ausgehängt werden, wenn kein Zugriff mehr erfolgt.
+Autofs wurde vorrangig zum einhängen von NFS oder SAMBA konzipiert. Auomatisches Einbinden externer Datenträger USB-Sticks / DVDs mit frei wählbaren Optionen-
+Verringert gegenüber statischen einhängen die Belastung des Systems, Netzweks und verbessert den Durchsatz.
+
+#Automount installieren
+
+1. Autofs Paket installieren
+2. Autofs starten und Autostart setzen (enable)
+3. Bearbeiten der auto.master (Hauptkonfigurations Datei)
+4. Auf der man Seite zu autofs (man 5 autofs) finden Sie Informationen zum Fortmat der Zuodnungen
+5. Die Master DAtei verlinkt auf eine FOrmat Datei wie auto.nfs die dann die enthaltene Mounts beinhaltet für das jeweilige Format
+6. Restarten des Autofs nach Änderungen an der Konfigurationsdateien
+
+dnf install autofs -y
+systemctl status autofs
+systemctl enable --now autofs
+ls -l / = mist und root Ordner zum ablegen
+cd /
+cat auto.master
+vim /etc/auto.master
+/server1 /etc/auto.nfs = einfügen
+vim /etc/auto.nfs
+nfsfreigabe nfs-server:/nfsfreigabe
+statt nfs-server kann auch IP verwendet werden
+ls -l /server1/nfsfreigabe = um darauf zuzugreifen
+df -h = nun ist die freigabe gemountet
+
+vim /etc/auto.master
+/server1 /etc/auto.nfs --timeout=10
+(bedeutet nach 10 sek soll ausgemountet werden)
+
+Aufgabenstellung:
+die /etc/hosts bearbeiten auf beiden Seiten
+Server1: vim /etc/exports
+/nfsbackup 192.168.92.136 (rw,not_root_squash)
+
+mkdir /nfsbackup
+systemctl restart nfs-server
+
+Client:
+mount srv1:/nfsbackup /server1
+funktioniert! nun umount /server1
+wir machen einen automount mit auto fs
+vim /etc/auto.master
+vim /etc/auto.nfs = kann man erstellen falls nicht vorhanden diese Datei legen wir selbst an und ist von vorheriger aufgabe vorhanden
+datenbankbackup srv1:/nfsbackup
+systemctl restart autofs
+
+Server1:
+#Wir erstellen einen Samba User
+adduser smbbackup -M -s /sbin/nologin
+[root@test ~]# chown smbbackup.smbbackup /smbbackup
+
+[root@test ~]# chmod 755 /smbbackup
+[root@test ~]# sestatus
+[root@test ~]# chcon -t samba_share_t /smbbackup/
+[root@test ~]# smbpasswd -a smbbackup
+New SMB password:
+Retype new SMB password:
+Added user smbbackup.
+test123
+
+[root@test ~]# pdbedit -L
+samba:1003:
+smbbackup:1004:
+
+Server1
+vim /etc/samba/smb.conf
+
+[smbbackup]
+        path = /smbbackup
+        guest ok = No
+        read only = No
+
+systemctl restart smb nmb
+
+CLIENT
+mount -o username=smbbackup,password=test123 //srv1/smbbackup /server1
+
+zur überprüfung
+smbclient -L //srv1
