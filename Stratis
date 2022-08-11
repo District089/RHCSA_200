@@ -1,0 +1,90 @@
+yum -y install stratisd stratis-cli
+systemctl enable --now stratisd
+stratis pool create appteam /dev/sda
+
+[root@client1 ~]# stratis blockdev
+Pool Name   Device Node   Physical Size   Tier
+appteam     /dev/sdb              2 GiB   Data
+appteam     /dev/sdc              2 GiB   Data
+
+[root@client1 ~]# stratis fs
+Pool Name   Name          Used      Created             Device                             UUID
+appteam     appfs1        557 MiB   Jul 20 2022 17:09   /dev/stratis/appteam/appfs1        0ccfeae9-1504-4477-9017-78d0a51785f2
+appteam     appfs1-orig   557 MiB   Jul 20 2022 16:54   /dev/stratis/appteam/appfs1-orig   26857c8c-dbc2-4ba7-91ff-cbcec227a24b
+
+stratis fs create appteam appfs1
+
+mkdir -p /mnt/app_storage
+vi /etc/fstab
+/stratis/appteam/appfs1 /mnt/app_storage xfs defaults,x-systemd.requires=stratisd.service 0 0 
+
+mount -a 
+
+mount | grep app 
+
+cp -rv /usr/share/doc /mnt/app_storage/
+
+du -hs /mnt/app_storage
+du -hs /usr/share/doc 
+
+ls -al /mnt/app_storage/
+
+lsblk
+
+stratis pool add-data appteam /dev/sdb
+stratis blockdev
+lsblk -f
+
+stratis fs 
+stratis fs snapshot appteam appfs1 appfs1-snapshot
+stratis fs 
+
+ls -al /mnt/app_storage/
+du -hs /mnt/app_storage/ 
+
+rm -rf /mnt/app_storage/doc/
+
+stratis fs rename appteam appfs1 appfs1-orig 
+stratis fs rename appteam appfs1-snapshot appfs1
+
+umount /mnt/app_storage ; mount /mnt/app_storage
+ls -al /mnt/app_storage/
+
+#Backup bzw. Snapshot wurde eingespielt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
