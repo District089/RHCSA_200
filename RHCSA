@@ -2617,3 +2617,7 @@ mount -o username=smbbackup,password=test123 //srv1/smbbackup /server1
 
 zur überprüfung
 smbclient -L //srv1
+
+
+PODMAN:
+
