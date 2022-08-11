@@ -1,0 +1,66 @@
+sudo fdisk -l | grep "^/dev/xvd" | sort
+
+Mount and Unmount Network File Systems Using NFS
+Check the status of the nfs-server:
+sudo systemctl status nfs-server.service
+Make a new directory named "/export/docs":
+sudo mkdir -p /exports/docs
+Update the ownership of the directory:
+sudo chown -R root:wheel /exports/docs
+Update the directory permissions:
+sudo chmod 700 /exports/docs
+Configure the share:
+sudo vim /etc/exports
+In the file, paste the following:
+/exports/docs     <PRIVATE_IP_ADDRESS_FOR_SERVER_2>(rw,sync,no_root_squash)
+Note: The IP address for the second server can be found in the Credentials section of the lab.
+
+Save the file:
+ESC
+ZZ
+Enable and start the NFS server:
+sudo systemctl enable nfs-server.service
+sudo systemctl start nfs-server.service ; systemctl status nfs-server.service
+List the details for the NFS server :
+showmount -e
+In /exports/docs/, make a new directory named "server1-dir":
+sudo mkdir -p /exports/docs/server1-dir
+Add a file to the new directory using touch:
+sudo touch /exports/docs/server1-file
+List the contents of the /exports/docs directory:
+sudo ls -l /exports/docs/
+SSH to the second server:
+ssh cloud_user@<PUBLIC_IP_ADDRESS_FOR_SERVER_2>
+From server 2, list the NFS server details on server 1:
+showmount -e <PRIVATE_IP_ADDRESS_FOR_SERVER_1>
+In server 2, create a new directory in /mnt named "nfsdocs":
+sudo mkdir -p /mnt/nfsdocs
+Mount the /exports/docs directory from server 1, to /mnt/nfsdocs:
+sudo mount <PRIVATE_IP_ADDRESS_FOR_SERVER_1>:/exports/docs /mnt/nfsdocs
+Update the ownership of the directory:
+sudo chown -R root:wheel /mnt/nfsdocs
+Update the directory permissions:
+sudo chmod 770 /mnt/nfsdocs
+List the contents of the nfsdocs directory:
+ls -l /mnt/nfsdocs/
+Open the /etc/fstab file:
+sudo vim /etc/fstab
+Use "G" to move to the end of the file, and use "o" to open an additional line, and add the following:
+<PRIVATE_IP_ADDRESS_FOR_SERVER_1>:/exports/docs        /mnt/nfsdocs        nfs    defaults    0 0
+Save and exit the file:
+ESC
+ZZ
+Unmount the /mnt/nfsdocs directory:
+sudo umount /mnt/nfsdocs
+Mount the /mnt/nfsdocs directory:
+sudo mount /mnt/nfsdocs
+List the contents of the nfsdocs directory:
+ls -l /mnt/nfsdocs/
+Make a new directory named "server2-dir1" in the /nfsdocs/ directory"
+sudo mkdir -p /mnt/nfsdocs/server2-dir1
+Add a file to the new directory using touch:
+sudo touch /mnt/nfsdocs/server2-file1
+Exit server 2:
+exit
+List the contents of /exports/docs
+ls -l /exports/docs
